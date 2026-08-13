@@ -128,8 +128,8 @@ input,select{font-family:inherit}
 <header class="topbar">
   <div class="logo">✦ MOLLY</div>
   <nav class="topnav">
-    <button id="topNotes" title="Mis notas">🗂️<span id="badgeNotes" class="badge">0</span></button>
-    <button id="topTasks" title="Tareas">🔔<span id="badgeTasks" class="badge">0</span></button>
+    <button id="topNotes" title="Mis notas">🗂️<span id="badgeNotes" class="badge" hidden>0</span></button>
+    <button id="topTasks" title="Tareas">🔔<span id="badgeTasks" class="badge" hidden>0</span></button>
   </nav>
 </header>
 <main>
@@ -228,14 +228,22 @@ input,select{font-family:inherit}
 </div>
 <script>
 const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
 const LS='molly_data_v1';
 let db={notes:[],tasks:[]};
+let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
+let recording=false,rec=null,mr=null,finalText='',interimCur='',timerH=null,sec=0;
+const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
+
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(db))}catch(e){db.notes.forEach(n=>n.audio=null);try{localStorage.setItem(LS,JSON.stringify(db))}catch(_){}}};
 const load=()=>{try{const d=JSON.parse(localStorage.getItem(LS));if(d&&d.notes)db=d}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const fmtT=s=>{s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 const p2=n=>String(n).padStart(2,'0');
 const timeOf=d=>p2(d.getHours())+':'+p2(d.getMinutes());
+const esc=s=>(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const sentencesOf=t=>(t.match(/[^.!?]+[.!?]*/g)||[t]).map(s=>s.trim()).filter(Boolean);
+
 function dayLabel(iso){const d=new Date(iso),t=new Date();t.setHours(0,0,0,0);
   const dd=new Date(d);dd.setHours(0,0,0,0);const diff=(t-dd)/864e5;
   if(diff===0)return 'Hoy, '+timeOf(d); if(diff===1)return 'Ayer, '+timeOf(d);
@@ -243,12 +251,16 @@ function dayLabel(iso){const d=new Date(iso),t=new Date();t.setHours(0,0,0,0);
 function relTime(iso){const ms=Date.now()-new Date(iso);const h=ms/36e5;
   if(h<1)return 'Hace '+Math.max(1,Math.round(h*60))+' min';
   if(h<24)return 'Hace '+Math.round(h)+' horas';return dayLabel(iso);}
+
+// ===== LINKS /c/XXXX =====
 function b64e(str){const b=new TextEncoder().encode(str);let bin='';b.forEach(x=>bin+=String.fromCharCode(x));
   return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function b64d(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';
   const bin=atob(s);const b=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(b);}
 function shareUrl(n){const p={t:n.title,x:n.text,g:n.tag||'',d:n.duration||0,c:n.createdAt};
   return location.origin+'/c/'+b64e(JSON.stringify(p));}
+
+// ===== SEMILLA =====
 function seed(){const d=(days,h,m)=>{const x=new Date();x.setDate(x.getDate()-days);x.setHours(h,m,0,0);return x.toISOString()};
  db.notes=[
   {id:uid(),title:'Reunión de Diseño',text:'Discutimos los nuevos colores para la app y la estructura de navegación. El usuario debe poder grabar notas de voz con un solo toque, sin navegar por menús complicados.',tag:'',createdAt:d(0,10,30),duration:95,audio:null},
@@ -263,7 +275,8 @@ function seed(){const d=(days,h,m)=>{const x=new Date();x.setDate(x.getDate()-da
   {id:uid(),title:'Enviar correo a diseño',due:d(2,10,0),tag:'',done:true},
   {id:uid(),title:'Pagar suscripción',due:d(2,12,0),tag:'',done:true}];
  save();}
-let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
+
+// ===== NAVEGACIÓN =====
 function showView(v){['home','notes','note','tasks','shared'].forEach(x=>$('#view-'+x).hidden=(x!==v));
   if(v!=='note'){stopAudio();stopTTS();}
   $('#navHome').classList.toggle('active',v==='home');
@@ -271,7 +284,14 @@ function showView(v){['home','notes','note','tasks','shared'].forEach(x=>$('#vie
   $('#navTasks').classList.toggle('active',v==='tasks');
   window.scrollTo(0,0);}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,2600);}
-function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+
+function updateBadges(){
+  const nCnt=db.notes.length;
+  const tCnt=db.tasks.filter(t=>!t.done&&new Date(t.due)<=new Date(new Date().setHours(23,59,59))).length;
+  $('#badgeNotes').textContent=nCnt;$('#badgeNotes').hidden=nCnt===0;
+  $('#badgeTasks').textContent=tCnt;$('#badgeTasks').hidden=tCnt===0;
+}
+
 function renderHome(){
   const pend=db.tasks.filter(t=>!t.done&&new Date(t.due)<=new Date(new Date().setHours(23,59,59)));
   const pb=$('#pendingBanner');pb.hidden=pend.length===0;
@@ -282,6 +302,7 @@ function renderHome(){
     <div class="meta"><span>🕐 ${relTime(n.createdAt)}</span>${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('');
   updateBadges();}
 window.openNote=id=>{const n=db.notes.find(x=>x.id===id);if(n)openNoteView(n);};
+
 function renderNotes(){const q=$('#searchInput').value.toLowerCase(),s=$('#sortSelect').value;
   let list=db.notes.filter(n=>(n.title+n.text).toLowerCase().includes(q));
   if(s==='recent')list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
@@ -294,11 +315,205 @@ function renderNotes(){const q=$('#searchInput').value.toLowerCase(),s=$('#sortS
     ${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('')
     ||'<p class="footer">No hay notas todavía. ¡Dicta la primera! 🎙️</p>';
   updateBadges();}
-const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
-function sentencesOf(t){return (t.match(/[^.!?]+[.!?]*/g)||[t]).map(s=>s.trim()).filter(Boolean);}
+
+// ===== RESUMEN / CHAT =====
 function renderSummary(text){const ss=sentencesOf(text);
   if(ss.length<=2){$('#sumList').innerHTML=ss.map(s=>`<div>✦ ${esc(s)}</div>`).join('');return;}
   const freq={};text.toLowerCase().split(/[^\p{L}]+/u).forEach(w=>{if(w.length>3&&!STOP.has(w))freq[w]=(freq[w]||0)+1;});
   const scored=ss.map((s,i)=>({i,s,score:s.toLowerCase().split(/[^\p{L}]+/u).reduce((a,w)=>a+(freq[w]||0),0)/Math.max(5,s.length)}));
   const top=scored.sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.i-b.i);
-  $('#sumList').innerHTML=top.map(x=>`<div>✦ ${esc(x.s)}
+  $('#sumList').innerHTML=top.map(x=>`<div>✦ ${esc(x.s)}</div>`).join('');}
+function resetChat(n){$('#chatLog').innerHTML=`<div class="bubble bot">Hola 👋 Soy Molly. Pregúntame algo sobre "${esc(n.title)}".</div>`;}
+function chatAnswer(q,text){const toks=q.toLowerCase().split(/[^\p{L}]+/u).filter(w=>w.length>2&&!STOP.has(w));
+  const hit=sentencesOf(text).filter(s=>{const l=s.toLowerCase();return toks.some(t=>l.includes(t));});
+  return hit.length?hit.slice(0,2).join(' '):'No encontré nada relacionado en esta nota. Prueba con otra palabra 🙈';}
+
+// ===== RECORDATORIOS =====
+function detectReminder(text){const low=text.toLowerCase();
+  const tm=low.match(/a las?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+  const dm=low.match(/\b(hoy|mañana|manana|el (lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b/);
+  if(!tm&&!dm)return null;
+  const due=new Date();let h=tm?parseInt(tm[1]):9,mi=tm&&tm[2]?parseInt(tm[2]):0;
+  if(tm&&tm[3]==='pm'&&h<12)h+=12;
+  if(dm){const w=dm[0];
+    if(w.includes('mañana')||w.includes('manana'))due.setDate(due.getDate()+1);
+    else if(w.startsWith('el')){const days=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+      const name=days.find(d=>w.includes(d.slice(0,4).replace('é','e'))||w.includes(d));
+      const idx=name?days.indexOf(name):1;let diff=(idx-due.getDay()+7)%7||7;due.setDate(due.getDate()+diff);}}
+  due.setHours(h,mi,0,0);
+  const sent=sentencesOf(text).find(s=>/a las|mañana|manana|hoy/i.test(s))||text.slice(0,60);
+  return {label:sent.trim(),due:due.toISOString()};}
+
+// ===== NOTA ABIERTA =====
+function openNoteView(n){currentNote=n;showView('note');
+  $('#ndTitle').textContent=n.title;$('#transText').textContent=n.text;
+  renderSummary(n.text);resetChat(n);
+  const rem=detectReminder(n.text);
+  pendingRem=(rem&&!n.remDismissed)?rem:null;
+  $('#reminderCard').hidden=!pendingRem;
+  if(pendingRem)$('#remText').textContent=pendingRem.label;
+  stopAudio();stopTTS();
+  if(n.audio){$('#playerWrap').hidden=false;$('#ttsBtn').hidden=true;
+    audioEl=new Audio(n.audio);
+    audioEl.ontimeupdate=()=>{$('#curTime').textContent=fmtT(audioEl.currentTime);
+      $('#seekBar').value=audioEl.duration?audioEl.currentTime/audioEl.duration*100:0;};
+    audioEl.onloadedmetadata=()=>$('#durTime').textContent=fmtT(audioEl.duration||n.duration);
+    audioEl.onended=()=>$('#playBtn').textContent='▶';
+  }else{$('#playerWrap').hidden=true;$('#ttsBtn').hidden=false;}
+  $$('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab==='trans'));
+  $('#pane-trans').hidden=false;$('#pane-resumen').hidden=true;$('#pane-chat').hidden=true;}
+function stopAudio(){if(audioEl){audioEl.pause();audioEl=null;}$('#playBtn').textContent='▶';}
+function stopTTS(){if(window.speechSynthesis)window.speechSynthesis.cancel();}
+
+// ===== TAREAS =====
+function renderTasks(){const now=new Date();
+  const act=db.tasks.filter(t=>!t.done),done=db.tasks.filter(t=>t.done);
+  const over=act.filter(t=>new Date(t.due)<now&&new Date(t.due).toDateString()!==now.toDateString());
+  const today=act.filter(t=>new Date(t.due).toDateString()===now.toDateString());
+  const up=act.filter(t=>!over.includes(t)&&!today.includes(t));
+  const card=(t,cls='')=>`<div class="task ${cls} ${t.done?'done':''}">
+    <button class="chk" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</button>
+    <div class="body"><h4>${esc(t.title)}</h4>
+    <div class="meta" style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--muted)">
+      <span>📅 ${dayLabel(t.due)}</span>${t.tag?`<span class="chip">${esc(t.tag)}</span>`:''}</div></div>
+    <button class="del" onclick="delTask('${t.id}')">🗑️</button></div>`;
+  $('#taskSections').innerHTML=
+    (over.length?'<div class="t-sec red">⚠️ VENCIDOS</div>'+over.map(t=>card(t,'over')).join(''):'')+
+    (today.length?'<div class="t-sec gold">📌 HOY</div>'+today.map(t=>card(t)).join(''):'')+
+    (up.length?'<div class="t-sec">🗓️ PRÓXIMOS</div>'+up.map(t=>card(t)).join(''):'')+
+    `<div class="t-sec" style="cursor:pointer" onclick="document.getElementById('tDoneWrap').hidden=!document.getElementById('tDoneWrap').hidden">✅ COMPLETADOS (${done.length}) ▾</div><div id="tDoneWrap" hidden>${done.map(t=>card(t)).join('')}</div>`;
+  updateBadges();}
+window.toggleTask=id=>{const t=db.tasks.find(x=>x.id===id);t.done=!t.done;save();renderTasks();renderHome();};
+window.delTask=id=>{db.tasks=db.tasks.filter(x=>x.id!==id);save();renderTasks();renderHome();};
+
+// ===== GRABACIÓN + DICTADO (fix Android) =====
+function startRec(){recording=true;finalText='';interimCur='';sec=0;
+  $('#micBtn').classList.add('recording');$('#recState').textContent='Escuchando… toca para terminar';
+  $('#recTimer').hidden=false;$('#recTimer').textContent='0:00';$('#liveText').hidden=false;$('#liveText').textContent='';
+  timerH=setInterval(()=>{sec++;$('#recTimer').textContent=fmtT(sec);},1000);
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(SR){
+    rec=new SR();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
+    rec.onresult=e=>{interimCur='';for(let i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+' ';else interimCur+=e.results[i][0].transcript;}
+      $('#liveText').textContent=finalText+interimCur;};
+    rec.onerror=e=>{$('#liveText').textContent='⚠️ '+(e.error==='not-allowed'?'Permiso de micrófono denegado':(e.error==='network'?'El dictado necesita internet':'Error: '+e.error));};
+    rec.onend=()=>{if(recording)try{rec.start()}catch(e){}};
+    try{rec.start()}catch(e){toast('No se pudo iniciar el reconocimiento');}
+  } else {
+    $('#liveText').textContent='(Tu navegador no soporta dictado; se grabará solo el audio)';
+    if(navigator.mediaDevices&&window.MediaRecorder){
+      navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{
+        mr=new MediaRecorder(st);const chunks=[];
+        mr.ondataavailable=e=>chunks.push(e.data);
+        mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());
+          const blob=new Blob(chunks,{type:'audio/webm'});
+          if(blob.size<3500000&&currentNote){const r=new FileReader();
+            r.onload=()=>{currentNote.audio=r.result;save();if(!$('#view-note').hidden)openNoteView(currentNote);};
+            r.readAsDataURL(blob);}};
+        mr.start();}).catch(()=>{});}
+  }
+}
+function stopRec(){recording=false;clearInterval(timerH);
+  $('#micBtn').classList.remove('recording');$('#recState').textContent='Toca para dictar tu nota';
+  try{rec&&rec.stop()}catch(e){} try{mr&&mr.stop()}catch(e){}
+  const text=(finalText+interimCur).trim();
+  $('#recTimer').hidden=true;$('#liveText').hidden=true;
+  if(text.length<3){toast('Nota demasiado corta');return;}
+  const newNote={id:uid(),title:text.slice(0,30)+(text.length>30?'…':''),text,tag:'',createdAt:new Date().toISOString(),duration:sec,audio:null};
+  db.notes.unshift(newNote);save();
+  toast('Nota guardada');renderHome();renderNotes();openNoteView(newNote);}
+
+function createTextNote(){
+  const val=$('#textNoteInput').value.trim();
+  if(!val){toast('Escribe algo primero');return;}
+  const n={id:uid(),title:val.slice(0,30)+(val.length>30?'…':''),text:val,tag:'',createdAt:new Date().toISOString(),duration:0,audio:null};
+  db.notes.unshift(n);save();$('#textNoteInput').value='';
+  toast('Nota guardada');renderHome();renderNotes();openNoteView(n);}
+
+// ===== COMPARTIR Y VISTA COMPARTIDA (/c/XXXX) =====
+function shareNote(n){if(location.protocol==='file:'){toast('Sube la app a Vercel para generar links');return;}
+  const url=shareUrl(n);
+  if(navigator.share){navigator.share({title:'MOLLY — '+n.title,url}).catch(()=>{});}
+  else{navigator.clipboard.writeText(url).then(()=>toast('Link copiado 🔗')).catch(()=>prompt('Copia el link:',url));}}
+
+function openShared(token){try{const p=JSON.parse(b64d(token));
+  sharedNote={id:uid(),title:p.t||'Nota de voz',text:p.x||'',tag:p.g||'',createdAt:p.c||new Date().toISOString(),duration:p.d||0,audio:null};
+  showView('shared');$('#shTitle').textContent=sharedNote.title;
+  $('#shMeta').textContent=dayLabel(sharedNote.createdAt)+' · 🎙 '+fmtT(sharedNote.duration);
+  $('#shText').textContent=sharedNote.text;
+  document.title='MOLLY — '+sharedNote.title;}catch(e){toast('Link inválido');showView('home');}}
+
+// ===== BANNER DE INSTALACIÓN =====
+function initInstall(){const standalone=matchMedia('(display-mode: standalone)').matches;
+  if(standalone||localStorage.getItem('molly_install_dismissed'))return;
+  $('#installBanner').hidden=false;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
+  window.addEventListener('appinstalled',()=>{$('#installBanner').hidden=true;toast('MOLLY instalada 🎉');});}
+function doInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')$('#installBanner').hidden=true;deferredPrompt=null;});}
+  else{const ios=/iphone|ipad/i.test(navigator.userAgent);
+    $('#helpText').innerHTML=ios
+      ?'En Safari toca <b>Compartir</b> ⬆️ y luego <b>"Agregar a pantalla de inicio"</b>.'
+      :'En Chrome toca el <b>menú ⋮</b> y luego <b>"Instalar app"</b> / "Agregar a pantalla de inicio".';
+    $('#helpModal').hidden=false;}}
+
+// ===== EVENTOS =====
+document.addEventListener('DOMContentLoaded',()=>{
+  load();
+  if(!db.notes.length&&!db.tasks.length)seed();
+  const m=location.pathname.match(/^\/c\/(.+)$/);
+  if(m){openShared(m[1]);}else{showView('home');}
+  renderHome();renderNotes();renderTasks();initInstall();
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+
+  $('#micBtn').onclick=()=>recording?stopRec():startRec();
+  $('#addTextBtn').onclick=createTextNote;
+  $('#textNoteInput').onkeydown=e=>{if(e.key==='Enter')createTextNote();};
+  $('#navHome').onclick=()=>{renderHome();showView('home');};
+  $('#navNotes').onclick=()=>{renderNotes();showView('notes');};
+  $('#navTasks').onclick=()=>{renderTasks();showView('tasks');};
+  $('#topNotes').onclick=()=>{renderNotes();showView('notes');};
+  $('#topTasks').onclick=()=>{renderTasks();showView('tasks');};
+  $('#ndBack').onclick=()=>showView('notes');
+  $('#tkBack').onclick=()=>showView('home');
+  $('#searchInput').oninput=renderNotes;
+  $('#sortSelect').onchange=renderNotes;
+  $('#ndDelete').onclick=()=>{if(currentNote&&confirm('¿Eliminar esta nota?')){
+    db.notes=db.notes.filter(n=>n.id!==currentNote.id);save();toast('Nota eliminada');renderNotes();showView('notes');}};
+  $('#ndShare').onclick=()=>{if(currentNote)shareNote(currentNote);};
+  $$('.tabs button').forEach(btn=>{btn.onclick=()=>{
+    $$('.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');const tab=btn.dataset.tab;
+    $('#pane-resumen').hidden=(tab!=='resumen');
+    $('#pane-trans').hidden=(tab!=='trans');
+    $('#pane-chat').hidden=(tab!=='chat');};});
+  $('#chatSend').onclick=()=>{const q=$('#chatInput').value.trim();if(!q||!currentNote)return;
+    const log=$('#chatLog');log.innerHTML+=`<div class="bubble user">${esc(q)}</div>`;
+    log.innerHTML+=`<div class="bubble bot">${esc(chatAnswer(q,currentNote.text))}</div>`;
+    $('#chatInput').value='';log.scrollTop=log.scrollHeight;};
+  $('#chatInput').onkeydown=e=>{if(e.key==='Enter')$('#chatSend').click();};
+  $('#remConfirm').onclick=()=>{if(!pendingRem)return;
+    db.tasks.unshift({id:uid(),title:pendingRem.label,due:pendingRem.due,tag:'Recordatorio',done:false});
+    if(currentNote)currentNote.remDismissed=true;save();$('#reminderCard').hidden=true;
+    toast('Recordatorio guardado en Tareas');renderTasks();renderHome();};
+  $('#remDismiss').onclick=()=>{if(currentNote)currentNote.remDismissed=true;save();$('#reminderCard').hidden=true;};
+  $('#playBtn').onclick=()=>{if(!audioEl)return;if(audioEl.paused){audioEl.play();$('#playBtn').textContent='⏸';}else{audioEl.pause();$('#playBtn').textContent='▶';}};
+  $('#back10').onclick=()=>{if(audioEl)audioEl.currentTime=Math.max(0,audioEl.currentTime-10);};
+  $('#fwd10').onclick=()=>{if(audioEl)audioEl.currentTime=Math.min(audioEl.duration||0,audioEl.currentTime+10);};
+  $('#seekBar').oninput=e=>{if(audioEl&&audioEl.duration)audioEl.currentTime=(e.target.value/100)*audioEl.duration;};
+  $('#ttsBtn').onclick=()=>{if(!currentNote||!window.speechSynthesis)return;stopTTS();
+    const utt=new SpeechSynthesisUtterance(currentNote.text);utt.lang='es-ES';window.speechSynthesis.speak(utt);toast('Leyendo nota…');};
+  $('#fmtBtn').onclick=()=>{if(!currentNote)return;
+    const formatted=sentencesOf(currentNote.text).join('.\n\n');
+    currentNote.text=formatted;save();$('#transText').textContent=formatted;toast('Texto formateado');renderSummary(formatted);};
+  $('#shSave').onclick=()=>{if(!sharedNote)return;db.notes.unshift(sharedNote);save();renderNotes();renderHome();toast('Guardada en mis notas 💾');openNoteView(sharedNote);};
+  $('#shTts').onclick=()=>{if(!sharedNote||!window.speechSynthesis)return;stopTTS();
+    const utt=new SpeechSynthesisUtterance(sharedNote.text);utt.lang='es-ES';window.speechSynthesis.speak(utt);};
+  $('#shHome').onclick=()=>showView('home');
+  $('#installBtn').onclick=doInstall;
+  $('#installClose').onclick=()=>{$('#installBanner').hidden=true;localStorage.setItem('molly_install_dismissed','1');};
+  $('#helpClose').onclick=()=>$('#helpModal').hidden=true;
+});
+</script>
+</body>
+</html>
