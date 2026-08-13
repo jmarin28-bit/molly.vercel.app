@@ -11,39 +11,24 @@
 <link rel="icon" href="/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <style>
-:root{
-  --bg:#161210; --card:#241b14; --card2:#2e2218; --border:#3d2d1d;
-  --gold:#e2aa3c; --gold2:#f2c14e; --text:#f5ead9; --muted:#a8977f;
-  --danger:#e0604f; --ok:#7fc97f;
-}
+:root{--bg:#161210;--card:#241b14;--card2:#2e2218;--border:#3d2d1d;--gold:#e2aa3c;--gold2:#f2c14e;--text:#f5ead9;--muted:#a8977f;--danger:#e0604f;--ok:#7fc97f}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI',Roboto,sans-serif;padding-bottom:80px}
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select{font-family:inherit}
 .hidden,[hidden]{display:none!important}
-
-/* ===== BANNER DE INSTALACIÓN (punto 2) ===== */
-.install-banner{position:sticky;top:8px;z-index:60;margin:8px 12px;display:flex;align-items:center;gap:12px;
-  background:#241a10;border:1px solid var(--gold);border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
+.install-banner{position:sticky;top:8px;z-index:60;margin:8px 12px;display:flex;align-items:center;gap:12px;background:#241a10;border:1px solid var(--gold);border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
 .ib-icon{width:46px;height:46px;border-radius:12px;object-fit:cover}
 .ib-text{flex:1;display:flex;flex-direction:column;gap:2px}
 .ib-text strong{font-size:14px}
 .ib-text span{font-size:12px;color:var(--muted)}
-.ib-btn{background:linear-gradient(180deg,#f0a95c,#e08b3d);color:#241505;font-weight:700;font-size:14px;
-  padding:10px 16px;border-radius:12px;white-space:nowrap}
+.ib-btn{background:linear-gradient(180deg,#f0a95c,#e08b3d);color:#241505;font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;white-space:nowrap}
 .ib-close{color:var(--muted);font-size:16px;padding:6px}
-
-/* ===== TOP BAR ===== */
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;position:sticky;top:0;
-  background:rgba(22,18,16,.92);backdrop-filter:blur(8px);z-index:50}
-.install-banner + .topbar{top:0}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;position:sticky;top:0;background:rgba(22,18,16,.92);backdrop-filter:blur(8px);z-index:50}
 .logo{color:var(--gold2);font-weight:800;letter-spacing:1px;font-size:17px}
 .topnav{display:flex;gap:8px}
 .topnav button{position:relative;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:15px}
-.badge{position:absolute;top:-6px;right:-6px;background:var(--gold);color:#241505;font-size:10px;font-weight:800;
-  border-radius:999px;min-width:16px;height:16px;line-height:16px;padding:0 4px}
-
-/* ===== VISTAS ===== */
+.badge{position:absolute;top:-6px;right:-6px;background:var(--gold);color:#241505;font-size:10px;font-weight:800;border-radius:999px;min-width:16px;height:16px;line-height:16px;padding:0 4px}
 .view{max-width:560px;margin:0 auto;padding:8px 14px}
 .sec-title{color:var(--muted);font-size:12px;letter-spacing:1px;margin:18px 4px 8px;text-transform:uppercase}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;margin-bottom:10px}
@@ -52,37 +37,26 @@ input,select{font-family:inherit}
 .card .meta{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:11px;color:var(--muted)}
 .chip{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:2px 8px;font-size:10px;color:var(--gold2)}
 .chip.red{color:#f0937f;border-color:#5a2c22}
-
-/* HOME */
-.pending{background:#2b2113;border:1px solid #4d3a17;color:var(--gold2);border-radius:12px;
-  padding:10px 14px;font-size:13px;text-align:center;margin-bottom:14px}
+.pending{background:#2b2113;border:1px solid #4d3a17;color:var(--gold2);border-radius:12px;padding:10px 14px;font-size:13px;text-align:center;margin-bottom:14px}
 .mic-card{display:flex;flex-direction:column;align-items:center;padding:26px 0 18px}
-.mic-btn{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f6cf7a,#d99a26 70%);
-  display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(226,170,60,.12),0 8px 30px rgba(0,0,0,.6);
-  transition:transform .15s}
+.mic-btn{width:110px;height:110px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f6cf7a,#d99a26 70%);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(226,170,60,.12),0 8px 30px rgba(0,0,0,.6);transition:transform .15s}
 .mic-btn:active{transform:scale(.95)}
 .mic-btn.recording{animation:pulse 1.2s infinite;background:radial-gradient(circle at 35% 30%,#ff8d7a,#c94b26 70%)}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(224,96,79,.5)}100%{box-shadow:0 0 0 26px rgba(224,96,79,0)}}
 .mic-btn svg{width:44px;height:44px;stroke:#241505;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
 .rec-state{margin-top:14px;font-size:13px;color:var(--muted)}
 .rec-timer{margin-top:4px;font-size:22px;font-weight:700;color:var(--gold2);font-variant-numeric:tabular-nums}
-.live-text{margin-top:10px;font-size:13px;color:var(--text);background:var(--card);border:1px dashed var(--border);
-  border-radius:12px;padding:10px;max-height:120px;overflow:auto;width:100%}
+.live-text{margin-top:10px;font-size:13px;color:var(--text);background:var(--card);border:1px dashed var(--border);border-radius:12px;padding:10px;max-height:120px;overflow:auto;width:100%;white-space:pre-wrap}
 .write-card{display:flex;gap:8px}
 .write-card input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);padding:12px;font-size:13px;outline:none}
 .write-card button{background:var(--gold);color:#241505;font-weight:700;border-radius:12px;padding:0 16px;font-size:13px}
-
-/* NOTAS */
 .notes-head{display:flex;justify-content:space-between;align-items:baseline;padding:6px 4px}
 .notes-head h2{font-size:18px}
 .notes-head span{font-size:12px;color:var(--muted)}
-.search{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);
-  padding:12px;font-size:13px;outline:none;margin-bottom:10px}
+.search{width:100%;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);padding:12px;font-size:13px;outline:none;margin-bottom:10px}
 .sort-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--muted);margin-bottom:12px;padding:0 4px}
 .sort-row select{background:var(--card);color:var(--gold2);border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12px;outline:none}
 .footer{text-align:center;color:#6b5c49;font-size:11px;margin:24px 0 8px}
-
-/* DETALLE */
 .nd-head{display:flex;align-items:center;gap:10px;padding:6px 0 12px}
 .nd-head h2{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nd-head button{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 11px;font-size:14px}
@@ -100,7 +74,6 @@ input,select{font-family:inherit}
 .chat-input{display:flex;gap:8px}
 .chat-input input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;color:var(--text);padding:11px;font-size:13px;outline:none}
 .chat-input button{background:var(--gold);color:#241505;border-radius:12px;width:44px;font-size:15px}
-
 .reminder{background:#2b2113;border:1px solid #6b4d17;border-radius:16px;padding:12px;margin-top:14px}
 .reminder strong{display:block;font-size:13px;color:var(--gold2);margin-bottom:2px}
 .reminder span{font-size:13px}
@@ -108,17 +81,13 @@ input,select{font-family:inherit}
 .rem-actions button{flex:1;border-radius:10px;padding:9px;font-size:12px;font-weight:700}
 #remConfirm{background:var(--gold);color:#241505}
 #remDismiss{background:var(--card2);border:1px solid var(--border);color:var(--muted)}
-
 .player{margin-top:14px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px}
 .player .row{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--muted)}
 .player input[type=range]{flex:1;accent-color:var(--gold)}
 .player-btns{display:flex;justify-content:center;align-items:center;gap:18px;margin-top:10px}
 .player-btns button{color:var(--gold2);font-size:13px;font-weight:700}
 #playBtn{width:52px;height:52px;border-radius:50%;background:var(--gold);color:#241505;font-size:18px}
-.tts-btn{width:100%;margin-top:14px;background:var(--card);border:1px solid var(--border);color:var(--gold2);
-  border-radius:12px;padding:12px;font-size:13px;font-weight:600}
-
-/* TAREAS */
+.tts-btn{width:100%;margin-top:14px;background:var(--card);border:1px solid var(--border);color:var(--gold2);border-radius:12px;padding:12px;font-size:13px;font-weight:600}
 .t-sec{font-size:11px;letter-spacing:1px;margin:16px 4px 8px;color:var(--muted)}
 .t-sec.red{color:var(--danger)} .t-sec.gold{color:var(--gold2)}
 .task{display:flex;align-items:flex-start;gap:12px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:8px}
@@ -128,8 +97,6 @@ input,select{font-family:inherit}
 .task.done h4{text-decoration:line-through;color:var(--muted)}
 .task .body{flex:1}
 .task .del{color:var(--danger);font-size:14px;padding:4px}
-
-/* COMPARTIDA */
 .sh-badge{display:inline-block;background:var(--card2);border:1px solid var(--border);color:var(--gold2);border-radius:999px;padding:5px 12px;font-size:11px;margin-bottom:10px}
 .sh-meta{color:var(--muted);font-size:12px;margin:6px 0 12px}
 .sh-actions{display:flex;flex-direction:column;gap:8px;margin-top:14px}
@@ -137,17 +104,11 @@ input,select{font-family:inherit}
 #shSave{background:var(--gold);color:#241505}
 #shTts{background:var(--card2);border:1px solid var(--border);color:var(--gold2)}
 #shHome{background:var(--card2);border:1px solid var(--border);color:var(--muted)}
-
-/* NAV INFERIOR */
-.bottomnav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:44px;
-  background:rgba(26,20,15,.96);backdrop-filter:blur(10px);border-top:1px solid var(--border);
-  padding:10px 0 calc(10px + env(safe-area-inset-bottom));z-index:50}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:center;gap:44px;background:rgba(26,20,15,.96);backdrop-filter:blur(10px);border-top:1px solid var(--border);padding:10px 0 calc(10px + env(safe-area-inset-bottom));z-index:50}
 .bottomnav button{color:var(--muted);font-size:20px;padding:6px 14px;border-radius:14px}
 .bottomnav button.active{color:var(--gold2);background:var(--card2)}
 .bottomnav svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-
-.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--gold);color:#241505;
-  font-weight:700;font-size:13px;border-radius:999px;padding:10px 20px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+.toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--gold);color:#241505;font-weight:700;font-size:13px;border-radius:999px;padding:10px 20px;z-index:99;box-shadow:0 6px 20px rgba(0,0,0,.5)}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:98;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal .box{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;max-width:380px;font-size:13px;line-height:1.7}
 .modal h3{color:var(--gold2);margin-bottom:8px}
@@ -155,8 +116,6 @@ input,select{font-family:inherit}
 </style>
 </head>
 <body>
-
-<!-- ══ PUNTO 2: BANNER SUPERIOR "INSTALA MOLLY" ══ -->
 <div id="installBanner" class="install-banner" hidden>
   <img src="/icon-192.png" class="ib-icon" alt="MOLLY">
   <div class="ib-text">
@@ -166,7 +125,6 @@ input,select{font-family:inherit}
   <button id="installBtn" class="ib-btn">📲 Instalar</button>
   <button id="installClose" class="ib-close" aria-label="Cerrar">✕</button>
 </div>
-
 <header class="topbar">
   <div class="logo">✦ MOLLY</div>
   <nav class="topnav">
@@ -174,9 +132,7 @@ input,select{font-family:inherit}
     <button id="topTasks" title="Tareas">🔔<span id="badgeTasks" class="badge">0</span></button>
   </nav>
 </header>
-
 <main>
-  <!-- ══ PANTALLA PRINCIPAL ══ -->
   <section id="view-home" class="view">
     <div id="pendingBanner" class="pending" hidden>⏳ <span id="pendingText"></span></div>
     <div class="card mic-card">
@@ -194,8 +150,6 @@ input,select{font-family:inherit}
     <h3 class="sec-title">Recientes</h3>
     <div id="homeRecent"></div>
   </section>
-
-  <!-- ══ PANEL DE NOTAS ══ -->
   <section id="view-notes" class="view" hidden>
     <div class="notes-head"><h2>Mis notas</h2><span id="notesCount">Total: 0</span></div>
     <input id="searchInput" class="search" placeholder="🔍 Buscar notas…">
@@ -209,8 +163,6 @@ input,select{font-family:inherit}
     <div id="notesList"></div>
     <p class="footer">Molly v1.0 – Notas de voz</p>
   </section>
-
-  <!-- ══ NOTA ABIERTA ══ -->
   <section id="view-note" class="view" hidden>
     <div class="nd-head">
       <button id="ndBack">←</button>
@@ -243,14 +195,10 @@ input,select{font-family:inherit}
     </div>
     <button id="ttsBtn" class="tts-btn" hidden>🔊 Escuchar nota (voz sintética)</button>
   </section>
-
-  <!-- ══ TAREAS / RECORDATORIOS ══ -->
   <section id="view-tasks" class="view" hidden>
     <div class="nd-head"><button id="tkBack">←</button><h2>Tareas</h2></div>
     <div id="taskSections"></div>
   </section>
-
-  <!-- ══ NOTA COMPARTIDA (/c/XXXX) ══ -->
   <section id="view-shared" class="view" hidden>
     <div class="card">
       <span class="sh-badge">🔗 Nota compartida contigo</span>
@@ -265,13 +213,11 @@ input,select{font-family:inherit}
     </div>
   </section>
 </main>
-
 <nav class="bottomnav">
   <button id="navHome" class="active" title="Dictar"><svg viewBox="0 0 24 24"><path d="M12 15a4 4 0 0 0 4-4V6a4 4 0 1 0-8 0v5a4 4 0 0 0 4 4Z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg></button>
   <button id="navNotes" title="Notas"><svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg></button>
   <button id="navTasks" title="Tareas"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.5 12 2.5 2.5 4.5-5"/></svg></button>
 </nav>
-
 <div id="toast" class="toast" hidden></div>
 <div id="helpModal" class="modal" hidden>
   <div class="box">
@@ -280,9 +226,7 @@ input,select{font-family:inherit}
     <button id="helpClose">Entendido</button>
   </div>
 </div>
-
 <script>
-/* ============ UTILIDADES ============ */
 const $=s=>document.querySelector(s);
 const LS='molly_data_v1';
 let db={notes:[],tasks:[]};
@@ -292,23 +236,19 @@ const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const fmtT=s=>{s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 const p2=n=>String(n).padStart(2,'0');
 const timeOf=d=>p2(d.getHours())+':'+p2(d.getMinutes());
-function dayLabel(iso){const d=new Date(iso),n=new Date(),t=new Date();t.setHours(0,0,0,0);
+function dayLabel(iso){const d=new Date(iso),t=new Date();t.setHours(0,0,0,0);
   const dd=new Date(d);dd.setHours(0,0,0,0);const diff=(t-dd)/864e5;
   if(diff===0)return 'Hoy, '+timeOf(d); if(diff===1)return 'Ayer, '+timeOf(d);
   return d.toLocaleDateString('es',{weekday:'short'})+', '+timeOf(d);}
 function relTime(iso){const ms=Date.now()-new Date(iso);const h=ms/36e5;
   if(h<1)return 'Hace '+Math.max(1,Math.round(h*60))+' min';
   if(h<24)return 'Hace '+Math.round(h)+' horas';return dayLabel(iso);}
-
-/* ============ LINKS /c/XXXX (PUNTO 1) ============ */
 function b64e(str){const b=new TextEncoder().encode(str);let bin='';b.forEach(x=>bin+=String.fromCharCode(x));
   return btoa(bin).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
 function b64d(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';
   const bin=atob(s);const b=Uint8Array.from(bin,c=>c.charCodeAt(0));return new TextDecoder().decode(b);}
 function shareUrl(n){const p={t:n.title,x:n.text,g:n.tag||'',d:n.duration||0,c:n.createdAt};
   return location.origin+'/c/'+b64e(JSON.stringify(p));}
-
-/* ============ SEMILLA (como tus capturas) ============ */
 function seed(){const d=(days,h,m)=>{const x=new Date();x.setDate(x.getDate()-days);x.setHours(h,m,0,0);return x.toISOString()};
  db.notes=[
   {id:uid(),title:'Reunión de Diseño',text:'Discutimos los nuevos colores para la app y la estructura de navegación. El usuario debe poder grabar notas de voz con un solo toque, sin navegar por menús complicados.',tag:'',createdAt:d(0,10,30),duration:95,audio:null},
@@ -323,8 +263,6 @@ function seed(){const d=(days,h,m)=>{const x=new Date();x.setDate(x.getDate()-da
   {id:uid(),title:'Enviar correo a diseño',due:d(2,10,0),tag:'',done:true},
   {id:uid(),title:'Pagar suscripción',due:d(2,12,0),tag:'',done:true}];
  save();}
-
-/* ============ NAVEGACIÓN ============ */
 let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
 function showView(v){['home','notes','note','tasks','shared'].forEach(x=>$('#view-'+x).hidden=(x!==v));
   if(v!=='note'){stopAudio();stopTTS();}
@@ -333,8 +271,7 @@ function showView(v){['home','notes','note','tasks','shared'].forEach(x=>$('#vie
   $('#navTasks').classList.toggle('active',v==='tasks');
   window.scrollTo(0,0);}
 function toast(msg){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(t._h);t._h=setTimeout(()=>t.hidden=true,2600);}
-
-/* ============ RENDER HOME ============ */
+function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
 function renderHome(){
   const pend=db.tasks.filter(t=>!t.done&&new Date(t.due)<=new Date(new Date().setHours(23,59,59)));
   const pb=$('#pendingBanner');pb.hidden=pend.length===0;
@@ -345,9 +282,6 @@ function renderHome(){
     <div class="meta"><span>🕐 ${relTime(n.createdAt)}</span>${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('');
   updateBadges();}
 window.openNote=id=>{const n=db.notes.find(x=>x.id===id);if(n)openNoteView(n);};
-function esc(s){return (s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
-
-/* ============ RENDER NOTAS ============ */
 function renderNotes(){const q=$('#searchInput').value.toLowerCase(),s=$('#sortSelect').value;
   let list=db.notes.filter(n=>(n.title+n.text).toLowerCase().includes(q));
   if(s==='recent')list.sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
@@ -360,28 +294,6 @@ function renderNotes(){const q=$('#searchInput').value.toLowerCase(),s=$('#sortS
     ${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('')
     ||'<p class="footer">No hay notas todavía. ¡Dicta la primera! 🎙️</p>';
   updateBadges();}
-
-/* ============ NOTA ABIERTA ============ */
-function openNoteView(n){currentNote=n;showView('note');
-  $('#ndTitle').textContent=n.title;$('#transText').textContent=n.text;
-  renderSummary(n.text);resetChat(n);
-  const rem=detectReminder(n.text);
-  pendingRem=(rem&&!n.remDismissed)?rem:null;
-  $('#reminderCard').hidden=!pendingRem;
-  if(pendingRem)$('#remText').textContent=pendingRem.label;
-  stopAudio();stopTTS();
-  if(n.audio){$('#playerWrap').hidden=false;$('#ttsBtn').hidden=true;
-    audioEl=new Audio(n.audio);
-    audioEl.ontimeupdate=()=>{$('#curTime').textContent=fmtT(audioEl.currentTime);
-      $('#seekBar').value=audioEl.duration?audioEl.currentTime/audioEl.duration*100:0;};
-    audioEl.onloadedmetadata=()=>$('#durTime').textContent=fmtT(audioEl.duration||n.duration);
-    audioEl.onended=()=>$('#playBtn').textContent='▶';
-  }else{$('#playerWrap').hidden=true;$('#ttsBtn').hidden=false;$('#durTime').textContent=fmtT(n.duration);}
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab==='trans'));
-  $('#pane-trans').hidden=false;$('#pane-resumen').hidden=true;$('#pane-chat').hidden=true;}
-function stopAudio(){if(audioEl){audioEl.pause();audioEl=null;}$('#playBtn').textContent='▶';}
-
-/* Resumen estilo NoMeet */
 const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
 function sentencesOf(t){return (t.match(/[^.!?]+[.!?]*/g)||[t]).map(s=>s.trim()).filter(Boolean);}
 function renderSummary(text){const ss=sentencesOf(text);
@@ -389,170 +301,4 @@ function renderSummary(text){const ss=sentencesOf(text);
   const freq={};text.toLowerCase().split(/[^\p{L}]+/u).forEach(w=>{if(w.length>3&&!STOP.has(w))freq[w]=(freq[w]||0)+1;});
   const scored=ss.map((s,i)=>({i,s,score:s.toLowerCase().split(/[^\p{L}]+/u).reduce((a,w)=>a+(freq[w]||0),0)/Math.max(5,s.length)}));
   const top=scored.sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.i-b.i);
-  $('#sumList').innerHTML=top.map(x=>`<div>✦ ${esc(x.s)}</div>`).join('');}
-
-/* Chat con la nota */
-function resetChat(n){$('#chatLog').innerHTML=`<div class="bubble bot">Hola 👋 Soy Molly. Pregúntame algo sobre “${esc(n.title)}”.</div>`;}
-function chatAnswer(q,text){const toks=q.toLowerCase().split(/[^\p{L}]+/u).filter(w=>w.length>2&&!STOP.has(w));
-  const hit=sentencesOf(text).filter(s=>{const l=s.toLowerCase();return toks.some(t=>l.includes(t));});
-  return hit.length?hit.slice(0,2).join(' '):'No encontré nada relacionado en esta nota. Prueba con otra palabra 🙈';}
-
-/* Detección de recordatorios */
-function detectReminder(text){const low=text.toLowerCase();
-  const tm=low.match(/a las?\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
-  const dm=low.match(/\b(hoy|mañana|manana|el (lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo))\b/);
-  if(!tm&&!dm)return null;
-  const due=new Date();let h=tm?parseInt(tm[1]):9,mi=tm&&tm[2]?parseInt(tm[2]):0;
-  if(tm&&tm[3]==='pm'&&h<12)h+=12;
-  if(dm){const w=dm[0];
-    if(w.includes('mañana')||w.includes('manana'))due.setDate(due.getDate()+1);
-    else if(w.startsWith('el')){const days=['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-      const name=days.find(d=>w.includes(d.slice(0,4).replace('é','e'))||w.includes(d));
-      const idx=name?days.indexOf(name):1;let diff=(idx-due.getDay()+7)%7||7;due.setDate(due.getDate()+diff);}}
-  due.setHours(h,mi,0,0);
-  const sent=sentencesOf(text).find(s=>/a las|mañana|manana|hoy/i.test(s))||text.slice(0,60);
-  return {label:sent.trim(),due:due.toISOString()};}
-
-/* ============ TAREAS ============ */
-function renderTasks(){const now=new Date(),t0=new Date();t0.setHours(0,0,0,0);const t1=new Date(t0);t1.setDate(t1.getDate()+1);
-  const act=db.tasks.filter(t=>!t.done),done=db.tasks.filter(t=>t.done);
-  const over=act.filter(t=>new Date(t.due)<t1&&new Date(t.due).toDateString()!==now.toDateString()&&new Date(t.due)<now);
-  const today=act.filter(t=>new Date(t.due).toDateString()===now.toDateString());
-  const up=act.filter(t=>!over.includes(t)&&!today.includes(t));
-  const card=(t,cls='')=>`<div class="task ${cls} ${t.done?'done':''}">
-    <button class="chk" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</button>
-    <div class="body"><h4>${esc(t.title)}</h4>
-    <div class="meta" style="display:flex;gap:8px;margin-top:4px;font-size:11px;color:var(--muted)">
-      <span>📅 ${dayLabel(t.due)}</span>${t.tag?`<span class="chip">${esc(t.tag)}</span>`:''}</div></div>
-    <button class="del" onclick="delTask('${t.id}')">🗑️</button></div>`;
-  $('#taskSections').innerHTML=
-    (over.length?'<div class="t-sec red">⚠️ VENCIDOS</div>'+over.map(t=>card(t,'over')).join(''):'')+
-    (today.length?'<div class="t-sec gold">📌 HOY</div>'+today.map(t=>card(t)).join(''):'')+
-    (up.length?'<div class="t-sec">🗓️ PRÓXIMOS</div>'+up.map(t=>card(t)).join(''):'')+
-    `<div class="t-sec" style="cursor:pointer" onclick="document.getElementById('tDoneWrap').hidden=!document.getElementById('tDoneWrap').hidden">✅ COMPLETADOS (${done.length}) ▾</div><div id="tDoneWrap" hidden>${done.map(t=>card(t)).join('')}</div>`;
-  updateBadges();}
-window.toggleTask=id=>{const t=db.tasks.find(x=>x.id===id);t.done=!t.done;save();renderTasks();renderHome();};
-window.delTask=id=>{db.tasks=db.tasks.filter(x=>x.id!==id);save();renderTasks();renderHome();};
-
-/* ============ GRABACIÓN + TRANSCRIPCIÓN ============ */
-let recording=false,rec=null,mr=null,finalText='',timerH=null,sec=0;
-function startRec(){recording=true;finalText='';sec=0;
-  $('#micBtn').classList.add('recording');$('#recState').textContent='Escuchando… toca para terminar';
-  $('#recTimer').hidden=false;$('#recTimer').textContent='0:00';$('#liveText').hidden=false;$('#liveText').textContent='';
-  timerH=setInterval(()=>{sec++;$('#recTimer').textContent=fmtT(sec);},1000);
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(SR){rec=new SR();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
-    rec.onresult=e=>{let interim='';for(let i=e.resultIndex;i<e.results.length;i++){
-        if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+' ';else interim+=e.results[i][0].transcript;}
-      $('#liveText').textContent=finalText+interim;};
-    rec.onend=()=>{if(recording)try{rec.start()}catch(e){}};
-    try{rec.start()}catch(e){toast('No se pudo iniciar el reconocimiento');}}
-  else $('#liveText').textContent='(Tu navegador no soporta dictado; se grabará solo el audio)';
-  if(navigator.mediaDevices&&window.MediaRecorder){
-    navigator.mediaDevices.getUserMedia({audio:true}).then(st=>{
-      mr=new MediaRecorder(st);const chunks=[];
-      mr.ondataavailable=e=>chunks.push(e.data);
-      mr.onstop=()=>{st.getTracks().forEach(t=>t.stop());
-        const blob=new Blob(chunks,{type:'audio/webm'});
-        if(blob.size<3500000&&currentNote){const r=new FileReader();
-          r.onload=()=>{currentNote.audio=r.result;save();if($('#view-note').hidden===false)openNoteView(currentNote);};
-          r.readAsDataURL(blob);}};
-      mr.start();}).catch(()=>{});}
-}
-function stopRec(){recording=false;clearInterval(timerH);
-  $('#micBtn').classList.remove('recording');$('#recState').textContent='Toca para dictar tu nota';
-  try{rec&&rec.stop()}catch(e){} try{mr&&mr.stop()}catch(e){}
-  const text=($('#liveText').textContent||'').trim()||finalText.trim();
-  $('#recTimer').hidden=true;$('#liveText').hidden=true;
-  if(text.length<3){toast('No se detectó voz 🙈');return;}
-  createNote(text,sec);}
-function createNote(text,duration){const words=text.split(/\s+/).slice(0,5).join(' ');
-  const n={id:uid(),title:words.charAt(0).toUpperCase()+words.slice(1)+(text.split(/\s+/).length>5?'…':''),
-    text,tag:'',createdAt:new Date().toISOString(),duration:duration||0,audio:null};
-  db.notes.unshift(n);save();renderHome();renderNotes();toast('Nota guardada ✨');openNoteView(n);
-  if(n.audio===null&&recording===false){/* el audio llega async si existe */}}
-
-/* ============ COMPARTIR (PUNTO 1) ============ */
-function shareNote(n){if(location.protocol==='file:'){toast('Sube la app a Vercel para generar links');return;}
-  const url=shareUrl(n);
-  if(navigator.share){navigator.share({title:'MOLLY — '+n.title,url}).catch(()=>{});}
-  else{navigator.clipboard.writeText(url).then(()=>toast('Link copiado 🔗 '+url.slice(0,40)+'…')).catch(()=>prompt('Copia el link:',url));}}
-
-/* ============ VISTA COMPARTIDA ============ */
-function openShared(token){try{const p=JSON.parse(b64d(token));
-  sharedNote={id:uid(),title:p.t||'Nota de voz',text:p.x||'',tag:p.g||'',createdAt:p.c||new Date().toISOString(),duration:p.d||0,audio:null};
-  showView('shared');$('#shTitle').textContent=sharedNote.title;
-  $('#shMeta').textContent=dayLabel(sharedNote.createdAt)+' · 🎙 '+fmtT(sharedNote.duration);
-  $('#shText').textContent=sharedNote.text;
-  document.title='MOLLY — '+sharedNote.title;}catch(e){toast('Link inválido');showView('home');}}
-
-/* ============ TTS ============ */
-let speaking=false;
-function stopTTS(){speaking=false;speechSynthesis&&speechSynthesis.cancel();}
-function speak(text){if(speaking){stopTTS();return;}speaking=true;
-  const u=new SpeechSynthesisUtterance(text);u.lang='es-ES';u.onend=()=>speaking=false;speechSynthesis.speak(u);}
-
-/* ============ BANNER DE INSTALACIÓN (PUNTO 2) ============ */
-function initInstall(){const standalone=matchMedia('(display-mode: standalone)').matches;
-  if(standalone||localStorage.getItem('molly_install_dismissed'))return;
-  $('#installBanner').hidden=false;
-  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
-  window.addEventListener('appinstalled',()=>{$('#installBanner').hidden=true;toast('MOLLY instalada 🎉');});}
-function doInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')$('#installBanner').hidden=true;deferredPrompt=null;});}
-  else{const ios=/iphone|ipad/i.test(navigator.userAgent);
-    $('#helpText').innerHTML=ios
-      ?'En Safari toca <b>Compartir</b> ⬆️ y luego <b>“Agregar a pantalla de inicio”</b>. Así tendrás MOLLY como app con su ícono dorado.'
-      :'En Chrome toca el <b>menú ⋮</b> y luego <b>“Instalar app”</b> / “Agregar a pantalla de inicio”.';
-    $('#helpModal').hidden=false;}}
-
-/* ============ BADGES ============ */
-function updateBadges(){const now=new Date();
-  const pend=db.tasks.filter(t=>!t.done&&new Date(t.due)<=new Date(new Date().setHours(23,59,59))).length;
-  $('#badgeTasks').textContent=pend;$('#badgeTasks').hidden=pend===0;
-  $('#badgeNotes').textContent=db.notes.length;$('#badgeNotes').hidden=db.notes.length===0;}
-
-/* ============ EVENTOS ============ */
-$('#micBtn').onclick=()=>recording?stopRec():startRec();
-$('#addTextBtn').onclick=()=>{const v=$('#textNoteInput').value.trim();if(v.length<3)return;createNote(v,0);$('#textNoteInput').value='';};
-$('#searchInput').oninput=renderNotes;$('#sortSelect').onchange=renderNotes;
-$('#navHome').onclick=()=>{stopRec();showView('home');renderHome();};
-$('#navNotes').onclick=()=>showView('notes');$('#navTasks').onclick=()=>showView('tasks');
-$('#topNotes').onclick=()=>showView('notes');$('#topTasks').onclick=()=>showView('tasks');
-$('#ndBack').onclick=()=>showView('notes');$('#tkBack').onclick=()=>showView('home');
-$('#ndShare').onclick=()=>shareNote(currentNote);
-$('#ndDelete').onclick=()=>{if(confirm('¿Eliminar esta nota?')){db.notes=db.notes.filter(x=>x.id!==currentNote.id);save();renderNotes();renderHome();showView('notes');toast('Nota eliminada');}};
-document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('.tabs button').forEach(x=>x.classList.toggle('active',x===b));
-  ['resumen','trans','chat'].forEach(p=>$('#pane-'+p).hidden=(p!==b.dataset.tab));});
-$('#chatSend').onclick=()=>{const q=$('#chatInput').value.trim();if(!q)return;
-  $('#chatLog').innerHTML+=`<div class="bubble user">${esc(q)}</div>`;
-  $('#chatLog').innerHTML+=`<div class="bubble bot">${esc(chatAnswer(q,currentNote.text))}</div>`;
-  $('#chatInput').value='';$('#chatLog').scrollTop=1e6;};
-$('#chatInput').onkeydown=e=>{if(e.key==='Enter')$('#chatSend').click();};
-$('#remConfirm').onclick=()=>{db.tasks.push({id:uid(),title:pendingRem.label,due:pendingRem.due,tag:'Recordatorio',done:false});
-  save();renderTasks();renderHome();$('#reminderCard').hidden=true;toast('Recordatorio agregado a Tareas ⏰');};
-$('#remDismiss').onclick=()=>{currentNote.remDismissed=true;save();$('#reminderCard').hidden=true;};
-$('#fmtBtn').onclick=()=>{let t=currentNote.text.replace(/\s+/g,' ').trim();
-  t=t.replace(/(^|[.!?]\s+)(\p{L})/gu,(m,a,b)=>a+b.toUpperCase());if(!/[.!?]$/.test(t))t+='.';
-  currentNote.text=t;save();$('#transText').textContent=t;renderSummary(t);toast('Texto formateado ✨');};
-$('#playBtn').onclick=()=>{if(!audioEl)return;if(audioEl.paused){audioEl.play();$('#playBtn').textContent='⏸';}else{audioEl.pause();$('#playBtn').textContent='▶';}};
-$('#back10').onclick=()=>audioEl&&(audioEl.currentTime=Math.max(0,audioEl.currentTime-10));
-$('#fwd10').onclick=()=>audioEl&&(audioEl.currentTime=Math.min(audioEl.duration||0,audioEl.currentTime+10));
-$('#seekBar').oninput=e=>audioEl&&(audioEl.currentTime=e.target.value/100*(audioEl.duration||0));
-$('#ttsBtn').onclick=()=>speak(currentNote.text);
-$('#shSave').onclick=()=>{db.notes.unshift(sharedNote);save();renderNotes();renderHome();toast('Guardada en mis notas 💾');openNoteView(sharedNote);};
-$('#shTts').onclick=()=>speak(sharedNote.text);
-$('#shHome').onclick=()=>showView('home');
-$('#installBtn').onclick=doInstall;
-$('#installClose').onclick=()=>{$('#installBanner').hidden=true;localStorage.setItem('molly_install_dismissed','1');};
-$('#helpClose').onclick=()=>$('#helpModal').hidden=true;
-
-/* ============ INICIO ============ */
-load();if(!db.notes.length&&!db.tasks.length)seed();
-const m=location.pathname.match(/^\/c\/(.+)$/);
-if(m){openShared(m[1]);}else{showView('home');}
-renderHome();renderNotes();renderTasks();initInstall();
-if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
-</script>
-</body>
-</html>
+  $('#sumList').innerHTML=top.map(x=>`<div>✦ ${esc(x.s)}
