@@ -9,7 +9,10 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icon-192.png">
 <link rel="icon" href="/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MOLLY">
 <style>
 :root{--bg:#161210;--card:#241b14;--card2:#2e2218;--border:#3d2d1d;--gold:#e2aa3c;--gold2:#f2c14e;--text:#f5ead9;--muted:#a8977f;--danger:#e0604f;--ok:#7fc97f}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -477,7 +480,10 @@ function isInstallDismissed(){
 
 function initInstall(){
   const standalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  if (standalone) return;
+  if (standalone) {
+    $('#installBanner').hidden = true;
+    return;
+  }
 
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
@@ -489,19 +495,38 @@ function initInstall(){
 
   window.addEventListener('appinstalled', () => {
     $('#installBanner').hidden = true;
-    toast('MOLLY instalada 🎉');
+    deferredPrompt = null;
+    toast('MOLLY instalada con éxito 🎉');
   });
 
-  if (!isInstallDismissed()) {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS && !isInstallDismissed()) {
     $('#installBanner').hidden = false;
   }
 }
-function doInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')$('#installBanner').hidden=true;deferredPrompt=null;});}
-  else{const ios=/iphone|ipad/i.test(navigator.userAgent);
-    $('#helpText').innerHTML=ios
-      ?'En Safari toca <b>Compartir</b> ⬆️ y luego <b>"Agregar a pantalla de inicio"</b>.'
-      :'En Chrome toca el <b>menú ⋮</b> y luego <b>"Instalar app"</b> / "Agregar a pantalla de inicio".';
-    $('#helpModal').hidden=false;}}
+
+async function doInstall(){
+  if (deferredPrompt) {
+    try {
+      deferredPrompt.prompt();
+      const choice = await deferredPrompt.userChoice;
+      if (choice && choice.outcome === 'accepted') {
+        $('#installBanner').hidden = true;
+      }
+      deferredPrompt = null;
+    } catch (err) {
+      console.error('Error al invocar instalación:', err);
+    }
+  } else {
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS) {
+      $('#helpText').innerHTML = 'En Safari toca el botón <b>Compartir</b> ⬆️ y luego <b>"Agregar a pantalla de inicio"</b> 📲.';
+      $('#helpModal').hidden = false;
+    } else {
+      toast('Si ya instalaste MOLLY, ábrela desde tu pantalla de inicio 📲');
+    }
+  }
+}
 
 // ===== EVENTOS =====
 document.addEventListener('DOMContentLoaded',()=>{
@@ -509,7 +534,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!db.notes.length&&!db.tasks.length)seed();
   const m=location.pathname.match(/^\/c\/(.+)$/);
   if(m){openShared(m[1]);}else{showView('home');}
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(()=>{});
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', ()=>{
+      navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(()=>{});
+    });
+  }
   renderHome();renderNotes();renderTasks();initInstall();
 
   $('#micBtn').onclick=()=>recording?stopRec():startRec();
