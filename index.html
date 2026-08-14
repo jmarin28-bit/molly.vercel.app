@@ -236,7 +236,7 @@ input,select{font-family:inherit}
 <script>
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
-const LS='molly_data_v1';
+const LS='molly_data_v2';
 const isAndroid=/android/i.test(navigator.userAgent);
 let db={notes:[],tasks:[]};
 let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
@@ -244,13 +244,43 @@ let recording=false,rec=null,mr=null,recStarting=false,timerH=null,sec=0,recogni
 const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
 
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(db))}catch(e){db.notes.forEach(n=>n.audio=null);try{localStorage.setItem(LS,JSON.stringify(db))}catch(_){}}};
-const load=()=>{try{const d=JSON.parse(localStorage.getItem(LS));if(d&&d.notes)db=d}catch(e){}};
+const load=()=>{try{const d=JSON.parse(localStorage.getItem(LS));if(d&&d.notes)db=d;else seed();}catch(e){}};
 const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
 const fmtT=s=>{s=Math.floor(s||0);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 const p2=n=>String(n).padStart(2,'0');
 const timeOf=d=>p2(d.getHours())+':'+p2(d.getMinutes());
 const esc=s=>(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 const sentencesOf=t=>(t.match(/[^.!?]+[.!?]*/g)||[t]).map(s=>s.trim()).filter(Boolean);
+
+let voices=[];
+function loadVoices(){if(window.speechSynthesis){voices=window.speechSynthesis.getVoices();}}
+if(typeof window!=='undefined'&&window.speechSynthesis){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged=loadVoices;
+}
+function getBestLatinFemaleVoice(){
+  if(!voices||!voices.length){if(window.speechSynthesis)voices=window.speechSynthesis.getVoices();}
+  if(!voices||!voices.length)return null;
+  const femaleKeys=['sabina','dalia','paulina','sofia','lupe','monica','mia','victoria','francisca','paloma','jimena','female','mujer','natural','neural','google español de estados unidos','google español'];
+  const latinFemale=voices.find(v=>/(es-419|es-MX|es-CO|es-US|es-AR|es-CL|es-PE|es-VE)/i.test(v.lang)&&femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
+  if(latinFemale)return latinFemale;
+  const latinVoice=voices.find(v=>/(es-419|es-MX|es-CO|es-US|es-AR|es-CL|es-PE)/i.test(v.lang));
+  if(latinVoice)return latinVoice;
+  const esFemale=voices.find(v=>/^es/i.test(v.lang)&&femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
+  if(esFemale)return esFemale;
+  return voices.find(v=>/^es/i.test(v.lang))||null;
+}
+function speakText(text){
+  if(!window.speechSynthesis||!text)return;
+  stopTTS();
+  const utt=new SpeechSynthesisUtterance(text);
+  const v=getBestLatinFemaleVoice();
+  if(v){utt.voice=v;utt.lang=v.lang;}else{utt.lang='es-MX';}
+  utt.rate=0.96;
+  utt.pitch=1.06;
+  window.speechSynthesis.speak(utt);
+}
+function stopTTS(){if(window.speechSynthesis)window.speechSynthesis.cancel();}
 
 function dayLabel(iso){const d=new Date(iso),t=new Date();t.setHours(0,0,0,0);
   const dd=new Date(d);dd.setHours(0,0,0,0);const diff=(t-dd)/864e5;
@@ -268,21 +298,11 @@ function b64d(s){s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='='
 function shareUrl(n){const p={t:n.title,x:n.text,g:n.tag||'',d:n.duration||0,c:n.createdAt};
   return location.origin+'/c/'+b64e(JSON.stringify(p));}
 
-// ===== SEMILLA =====
-function seed(){const d=(days,h,m)=>{const x=new Date();x.setDate(x.getDate()-days);x.setHours(h,m,0,0);return x.toISOString()};
- db.notes=[
-  {id:uid(),title:'Reunión de Diseño',text:'Discutimos los nuevos colores para la app y la estructura de navegación. El usuario debe poder grabar notas de voz con un solo toque, sin navegar por menús complicados.',tag:'',createdAt:d(0,10,30),duration:95,audio:null},
-  {id:uid(),title:'Ideas Podcast Ep. 12',text:'Temas principales: inteligencia artificial generativa en el día a día, herramientas de productividad y hábitos digitales saludables.',tag:'',createdAt:d(1,16,55),duration:140,audio:null},
-  {id:uid(),title:'Lista de Compras',text:'Café en grano, leche de avena, manzanas, pan integral, aceite de oliva.',tag:'Personal',createdAt:d(3,9,0),duration:32,audio:null},
-  {id:uid(),title:'Recordatorio Vuelo',text:'Llamar al cliente mañana a las 9am para confirmar los requisitos de diseño. No se me puede pasar esto.',tag:'Importante',createdAt:d(0,8,0),duration:61,audio:null}];
- db.tasks=[
-  {id:uid(),title:'Revisar presupuesto mensual',due:d(1,18,0),tag:'',done:false},
-  {id:uid(),title:'Comprar café en grano',due:d(0,14,30),tag:'Personal',done:false},
-  {id:uid(),title:'Llamar al veterinario',due:d(0,18,0),tag:'',done:false},
-  {id:uid(),title:'Preparar presentación trimestral',due:d(-2,9,0),tag:'',done:false},
-  {id:uid(),title:'Enviar correo a diseño',due:d(2,10,0),tag:'',done:true},
-  {id:uid(),title:'Pagar suscripción',due:d(2,12,0),tag:'',done:true}];
- save();}
+// ===== INICIALIZACIÓN LIMPIA (0 notas y 0 tareas por defecto) =====
+function seed(){
+  db={notes:[],tasks:[]};
+  save();
+}
 
 // ===== NAVEGACIÓN =====
 function showView(v){['home','notes','note','tasks','shared'].forEach(x=>$('#view-'+x).hidden=(x!==v));
@@ -305,9 +325,10 @@ function renderHome(){
   const pb=$('#pendingBanner');pb.hidden=pend.length===0;
   if(pend.length)$('#pendingText').textContent='Tienes '+pend.length+' pendientes para hoy';
   const rec=[...db.notes].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,2);
-  $('#homeRecent').innerHTML=rec.map(n=>`<div class="card" onclick="openNote('${n.id}')">
+  $('#homeRecent').innerHTML=rec.length ? rec.map(n=>`<div class="card" onclick="openNote('${n.id}')">
     <h4>💡 ${esc(n.title)}</h4><p>${esc(n.text)}</p>
-    <div class="meta"><span>🕐 ${relTime(n.createdAt)}</span>${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('');
+    <div class="meta"><span>🕐 ${relTime(n.createdAt)}</span>${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('')
+    : '<div class="card" style="text-align:center;padding:24px 16px;color:var(--muted)"><p style="font-size:14px;margin-bottom:6px">No tienes notas aún 🎙️</p><p style="font-size:12px">Toca el micrófono abajo para dictar tu primera nota.</p></div>';
   updateBadges();}
 window.openNote=id=>{const n=db.notes.find(x=>x.id===id);if(n)openNoteView(n);};
 
@@ -321,7 +342,7 @@ function renderNotes(){const q=$('#searchInput').value.toLowerCase(),s=$('#sortS
     <h4>✦ ${esc(n.title)}</h4><p>${esc(n.text)}</p>
     <div class="meta"><span>${dayLabel(n.createdAt)}</span><span>🎙 ${fmtT(n.duration)}</span>
     ${n.tag?`<span class="chip ${n.tag==='Importante'?'red':''}">${esc(n.tag)}</span>`:''}</div></div>`).join('')
-    ||'<p class="footer">No hay notas todavía. ¡Dicta la primera! 🎙️</p>';
+    ||'<div style="text-align:center;padding:40px 16px;color:var(--muted)"><p style="font-size:15px;margin-bottom:6px">No hay notas todavía 🎙️</p><p style="font-size:12px">Toca el micrófono abajo para comenzar a dictar.</p></div>';
   updateBadges();}
 
 // ===== RESUMEN / CHAT =====
@@ -371,11 +392,15 @@ function openNoteView(n){currentNote=n;showView('note');
   $$('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab==='trans'));
   $('#pane-trans').hidden=false;$('#pane-resumen').hidden=true;$('#pane-chat').hidden=true;}
 function stopAudio(){if(audioEl){audioEl.pause();audioEl=null;}$('#playBtn').textContent='▶';}
-function stopTTS(){if(window.speechSynthesis)window.speechSynthesis.cancel();}
 
 // ===== TAREAS =====
 function renderTasks(){const now=new Date();
   const act=db.tasks.filter(t=>!t.done),done=db.tasks.filter(t=>t.done);
+  if(!act.length&&!done.length){
+    $('#taskSections').innerHTML='<div style="text-align:center;padding:40px 16px;color:var(--muted)"><p style="font-size:15px;margin-bottom:6px">No tienes tareas pendientes ✅</p><p style="font-size:12px">Las tareas y recordatorios que crees aparecerán aquí.</p></div>';
+    updateBadges();
+    return;
+  }
   const over=act.filter(t=>new Date(t.due)<now&&new Date(t.due).toDateString()!==now.toDateString());
   const today=act.filter(t=>new Date(t.due).toDateString()===now.toDateString());
   const up=act.filter(t=>!over.includes(t)&&!today.includes(t));
@@ -389,7 +414,7 @@ function renderTasks(){const now=new Date();
     (over.length?'<div class="t-sec red">⚠️ VENCIDOS</div>'+over.map(t=>card(t,'over')).join(''):'')+
     (today.length?'<div class="t-sec gold">📌 HOY</div>'+today.map(t=>card(t)).join(''):'')+
     (up.length?'<div class="t-sec">🗓️ PRÓXIMOS</div>'+up.map(t=>card(t)).join(''):'')+
-    `<div class="t-sec" style="cursor:pointer" onclick="document.getElementById('tDoneWrap').hidden=!document.getElementById('tDoneWrap').hidden">✅ COMPLETADOS (${done.length}) ▾</div><div id="tDoneWrap" hidden>${done.map(t=>card(t)).join('')}</div>`;
+    (done.length?`<div class="t-sec" style="cursor:pointer" onclick="document.getElementById('tDoneWrap').hidden=!document.getElementById('tDoneWrap').hidden">✅ COMPLETADOS (${done.length}) ▾</div><div id="tDoneWrap" hidden>${done.map(t=>card(t)).join('')}</div>`:'');
   updateBadges();}
 window.toggleTask=id=>{const t=db.tasks.find(x=>x.id===id);t.done=!t.done;save();renderTasks();renderHome();};
 window.delTask=id=>{db.tasks=db.tasks.filter(x=>x.id!==id);save();renderTasks();renderHome();};
@@ -610,14 +635,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#back10').onclick=()=>{if(audioEl)audioEl.currentTime=Math.max(0,audioEl.currentTime-10);};
   $('#fwd10').onclick=()=>{if(audioEl)audioEl.currentTime=Math.min(audioEl.duration||0,audioEl.currentTime+10);};
   $('#seekBar').oninput=e=>{if(audioEl&&audioEl.duration)audioEl.currentTime=(e.target.value/100)*audioEl.duration;};
-  $('#ttsBtn').onclick=()=>{if(!currentNote||!window.speechSynthesis)return;stopTTS();
-    const utt=new SpeechSynthesisUtterance(currentNote.text);utt.lang='es-ES';window.speechSynthesis.speak(utt);toast('Leyendo nota…');};
+  $('#ttsBtn').onclick=()=>{if(!currentNote)return;
+    speakText(currentNote.text);toast('Leyendo nota… 🎙️');};
   $('#fmtBtn').onclick=()=>{if(!currentNote)return;
     const formatted=sentencesOf(currentNote.text).join('.\n\n');
     currentNote.text=formatted;save();$('#transText').textContent=formatted;toast('Texto formateado');renderSummary(formatted);};
   $('#shSave').onclick=()=>{if(!sharedNote)return;db.notes.unshift(sharedNote);save();renderNotes();renderHome();toast('Guardada en mis notas 💾');openNoteView(sharedNote);};
-  $('#shTts').onclick=()=>{if(!sharedNote||!window.speechSynthesis)return;stopTTS();
-    const utt=new SpeechSynthesisUtterance(sharedNote.text);utt.lang='es-ES';window.speechSynthesis.speak(utt);};
+  $('#shTts').onclick=()=>{if(!sharedNote)return;
+    speakText(sharedNote.text);toast('Leyendo nota compartida… 🎙️');};
   $('#shOpenBrowser').onclick=()=>{window.open(location.href,'_blank')||(location.href=location.href);};
   $('#shHome').onclick=()=>showView('home');
   $('#installBtn').onclick=doInstall;
