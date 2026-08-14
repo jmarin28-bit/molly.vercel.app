@@ -211,6 +211,7 @@ input,select{font-family:inherit}
       <div class="sh-actions">
         <button id="shSave">💾 Guardar en mis notas</button>
         <button id="shTts">🔊 Escuchar</button>
+        <button id="shOpenBrowser">🌐 Abrir en Chrome (Navegador)</button>
         <button id="shHome">✦ Crear mi propia nota</button>
       </div>
     </div>
@@ -556,6 +557,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#shSave').onclick=()=>{if(!sharedNote)return;db.notes.unshift(sharedNote);save();renderNotes();renderHome();toast('Guardada en mis notas 💾');openNoteView(sharedNote);};
   $('#shTts').onclick=()=>{if(!sharedNote||!window.speechSynthesis)return;stopTTS();
     const utt=new SpeechSynthesisUtterance(sharedNote.text);utt.lang='es-ES';window.speechSynthesis.speak(utt);};
+  $('#shOpenBrowser').onclick=()=>{window.open(location.href,'_blank')||(location.href=location.href);};
   $('#shHome').onclick=()=>showView('home');
   $('#installBtn').onclick=doInstall;
   $('#installClose').onclick=()=>{$('#installBanner').hidden=true;localStorage.setItem('molly_install_dismissed',String(Date.now()));};

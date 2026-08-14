@@ -1,6 +1,7 @@
-const CACHE = 'molly-v2';
+const CACHE = 'molly-v3';
 const CORE = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', e => {
+  self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
 });
 self.addEventListener('activate', e => {
