@@ -445,11 +445,33 @@ function openShared(token){try{const p=JSON.parse(b64d(token));
   document.title='MOLLY — '+sharedNote.title;}catch(e){toast('Link inválido');showView('home');}}
 
 // ===== BANNER DE INSTALACIÓN =====
-function initInstall(){const standalone=matchMedia('(display-mode: standalone)').matches;
-  if(standalone||localStorage.getItem('molly_install_dismissed'))return;
-  $('#installBanner').hidden=false;
-  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
-  window.addEventListener('appinstalled',()=>{$('#installBanner').hidden=true;toast('MOLLY instalada 🎉');});}
+function initInstall(){
+  const standalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  if (standalone) return;
+
+  // Registrar el evento ANTES de mostrar nada
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Solo mostrar banner si no fue descartado
+    if (!localStorage.getItem('molly_install_dismissed')) {
+      $('#installBanner').hidden = false;
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    $('#installBanner').hidden = true;
+    toast('MOLLY instalada 🎉');
+  });
+
+  // Fallback: si después de 4s no llegó beforeinstallprompt, mostrar banner igual
+  // (así el usuario al menos ve la opción manual)
+  setTimeout(() => {
+    if (!deferredPrompt && !standalone && !localStorage.getItem('molly_install_dismissed')) {
+      $('#installBanner').hidden = false;
+    }
+  }, 4000);
+}
 function doInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')$('#installBanner').hidden=true;deferredPrompt=null;});}
   else{const ios=/iphone|ipad/i.test(navigator.userAgent);
     $('#helpText').innerHTML=ios
@@ -463,8 +485,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!db.notes.length&&!db.tasks.length)seed();
   const m=location.pathname.match(/^\/c\/(.+)$/);
   if(m){openShared(m[1]);}else{showView('home');}
-  renderHome();renderNotes();renderTasks();initInstall();
   if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  renderHome();renderNotes();renderTasks();initInstall();
 
   $('#micBtn').onclick=()=>recording?stopRec():startRec();
   $('#addTextBtn').onclick=createTextNote;
