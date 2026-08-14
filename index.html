@@ -397,7 +397,7 @@ function startRec(){recording=true;finalText='';interimCur='';lastFinalText='';s
   timerH=setInterval(()=>{sec++;$('#recTimer').textContent=fmtT(sec);},1000);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR){
-    rec=new SR();rec.lang='es-ES';rec.continuous=!isAndroid;rec.interimResults=true;
+    rec=new SR();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
     rec.onresult=e=>{interimCur='';for(let i=e.resultIndex;i<e.results.length;i++){
         if(e.results[i].isFinal){
           const tr=e.results[i][0].transcript.trim();
@@ -410,11 +410,7 @@ function startRec(){recording=true;finalText='';interimCur='';lastFinalText='';s
     rec.onerror=e=>{$('#liveText').textContent='⚠️ '+(e.error==='not-allowed'?'Permiso de micrófono denegado':(e.error==='network'?'El dictado necesita internet':'Error: '+e.error));};
     rec.onend=()=>{
       if(recording){
-        if(isAndroid){
-          setTimeout(()=>{if(recording)try{rec.start()}catch(e){}},300);
-        }else{
-          try{rec.start()}catch(e){}
-        }
+        setTimeout(()=>{if(recording)try{rec.start()}catch(e){}},400);
       }
     };
     try{rec.start()}catch(e){toast('No se pudo iniciar el reconocimiento');}
@@ -464,19 +460,30 @@ function openShared(token){try{const p=JSON.parse(b64d(token));
   document.title='MOLLY — '+sharedNote.title;}catch(e){toast('Link inválido');showView('home');}}
 
 // ===== BANNER DE INSTALACIÓN =====
+function isInstallDismissed(){
+  const dis = localStorage.getItem('molly_install_dismissed');
+  if (!dis) return false;
+  const num = Number(dis);
+  if (dis === '1' || isNaN(num) || num < 1e12) {
+    localStorage.removeItem('molly_install_dismissed');
+    return false;
+  }
+  if (Date.now() - num < 7 * 24 * 3600 * 1000) {
+    return true;
+  } else {
+    localStorage.removeItem('molly_install_dismissed');
+    return false;
+  }
+}
+
 function initInstall(){
-  // console.log('[Install] initInstall called');
   const standalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  // console.log('[Install] standalone:', standalone);
   if (standalone) return;
 
-  // Registrar el evento ANTES de mostrar nada
   window.addEventListener('beforeinstallprompt', e => {
-    // console.log('[Install] beforeinstallprompt fired', e);
     e.preventDefault();
     deferredPrompt = e;
-    // Solo mostrar banner si no fue descartado
-    if (!localStorage.getItem('molly_install_dismissed')) {
+    if (!isInstallDismissed()) {
       $('#installBanner').hidden = false;
     }
   });
@@ -486,14 +493,9 @@ function initInstall(){
     toast('MOLLY instalada 🎉');
   });
 
-  // Fallback: si después de 4s no llegó beforeinstallprompt, mostrar banner igual
-  // (así el usuario al menos ve la opción manual)
-  setTimeout(() => {
-    // console.log('[Install] Fallback timeout executed, deferredPrompt:', !!deferredPrompt);
-    if (!deferredPrompt && !standalone && !localStorage.getItem('molly_install_dismissed')) {
-      $('#installBanner').hidden = false;
-    }
-  }, 4000);
+  if (!isInstallDismissed()) {
+    $('#installBanner').hidden = false;
+  }
 }
 function doInstall(){if(deferredPrompt){deferredPrompt.prompt();deferredPrompt.userChoice.then(r=>{if(r.outcome==='accepted')$('#installBanner').hidden=true;deferredPrompt=null;});}
   else{const ios=/iphone|ipad/i.test(navigator.userAgent);
@@ -556,8 +558,10 @@ document.addEventListener('DOMContentLoaded',()=>{
     const utt=new SpeechSynthesisUtterance(sharedNote.text);utt.lang='es-ES';window.speechSynthesis.speak(utt);};
   $('#shHome').onclick=()=>showView('home');
   $('#installBtn').onclick=doInstall;
-  $('#installClose').onclick=()=>{$('#installBanner').hidden=true;localStorage.setItem('molly_install_dismissed','1');};
+  $('#installClose').onclick=()=>{$('#installBanner').hidden=true;localStorage.setItem('molly_install_dismissed',String(Date.now()));};
   $('#helpClose').onclick=()=>$('#helpModal').hidden=true;
+  window.addEventListener('beforeunload',save);
+  document.addEventListener('visibilitychange',()=>{(document.visibilityState==='hidden')&&save();});
 });
 </script>
 </body>
