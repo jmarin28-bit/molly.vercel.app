@@ -237,7 +237,7 @@ const LS='molly_data_v1';
 const isAndroid=/android/i.test(navigator.userAgent);
 let db={notes:[],tasks:[]};
 let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
-let recording=false,rec=null,mr=null,finalText='',interimCur='',lastFinalText='',timerH=null,sec=0;
+let recording=false,rec=null,mr=null,finalSegments=[],interimCur='',recStarting=false,timerH=null,sec=0;
 const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
 
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(db))}catch(e){db.notes.forEach(n=>n.audio=null);try{localStorage.setItem(LS,JSON.stringify(db))}catch(_){}}};
@@ -392,29 +392,27 @@ window.toggleTask=id=>{const t=db.tasks.find(x=>x.id===id);t.done=!t.done;save()
 window.delTask=id=>{db.tasks=db.tasks.filter(x=>x.id!==id);save();renderTasks();renderHome();};
 
 // ===== GRABACIÓN + DICTADO (fix Android) =====
-function startRec(){recording=true;finalText='';interimCur='';lastFinalText='';sec=0;
+function startRec(){recording=true;recStarting=false;finalSegments=[];interimCur='';sec=0;
   $('#micBtn').classList.add('recording');$('#recState').textContent='Escuchando… toca para terminar';
   $('#recTimer').hidden=false;$('#recTimer').textContent='0:00';$('#liveText').hidden=false;$('#liveText').textContent='';
   timerH=setInterval(()=>{sec++;$('#recTimer').textContent=fmtT(sec);},1000);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR){
     rec=new SR();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
-    rec.onresult=e=>{interimCur='';for(let i=e.resultIndex;i<e.results.length;i++){
-        if(e.results[i].isFinal){
-          const tr=e.results[i][0].transcript.trim();
-          if(tr && tr!==lastFinalText && !lastFinalText.endsWith(tr)){
-            finalText+=tr+' ';
-            lastFinalText=tr;
-          }
-        }else interimCur+=e.results[i][0].transcript;}
-      $('#liveText').textContent=finalText+interimCur;};
-    rec.onerror=e=>{$('#liveText').textContent='⚠️ '+(e.error==='not-allowed'?'Permiso de micrófono denegado':(e.error==='network'?'El dictado necesita internet':'Error: '+e.error));};
+    rec.onstart=()=>{recStarting=false;};
+    rec.onresult=e=>{interimCur='';
+      for(let i=0;i<e.results.length;i++){
+        if(e.results[i].isFinal)finalSegments[i]=e.results[i][0].transcript.trim();
+        else interimCur+=e.results[i][0].transcript;}
+      const finalText=finalSegments.filter(Boolean).join(' ');
+      $('#liveText').textContent=(finalText?finalText+' ':'')+interimCur;};
+    rec.onerror=e=>{recStarting=false;
+      $('#liveText').textContent='⚠️ '+(e.error==='not-allowed'?'Permiso de micrófono denegado':(e.error==='network'?'El dictado necesita internet':'Error: '+e.error));};
     rec.onend=()=>{
-      if(recording){
-        setTimeout(()=>{if(recording)try{rec.start()}catch(e){}},400);
-      }
+      recStarting=false;
     };
-    try{rec.start()}catch(e){toast('No se pudo iniciar el reconocimiento');}
+    recStarting=true;
+    try{rec.start();}catch(e){recStarting=false;toast('No se pudo iniciar el reconocimiento');}
   } else {
     $('#liveText').textContent='(Tu navegador no soporta dictado; se grabará solo el audio)';
     if(navigator.mediaDevices&&window.MediaRecorder){
@@ -429,11 +427,11 @@ function startRec(){recording=true;finalText='';interimCur='';lastFinalText='';s
         mr.start();}).catch(()=>{});}
   }
 }
-function stopRec(){recording=false;clearInterval(timerH);
+function stopRec(){recording=false;recStarting=false;clearInterval(timerH);
   $('#micBtn').classList.remove('recording');$('#recState').textContent='Toca para dictar tu nota';
   try{rec&&rec.stop()}catch(e){} try{mr&&mr.stop()}catch(e){}
-  let text=(finalText+interimCur).trim();
-  text=text.replace(/\b(\w+)(\s+\1\b)+/gi,'$1');
+  const finalText=finalSegments.filter(Boolean).join(' ');
+  const text=(finalText?finalText+' '+interimCur:interimCur).trim();
   $('#recTimer').hidden=true;$('#liveText').hidden=true;
   if(text.length<3){toast('Nota demasiado corta');return;}
   const newNote={id:uid(),title:text.slice(0,30)+(text.length>30?'…':''),text,tag:'',createdAt:new Date().toISOString(),duration:sec,audio:null};
