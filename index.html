@@ -17,14 +17,17 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,'Segoe UI'
 button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
 input,select{font-family:inherit}
 .hidden,[hidden]{display:none!important}
-.install-banner{position:sticky;top:8px;z-index:60;margin:8px 12px;display:flex;align-items:center;gap:12px;background:#241a10;border:1px solid var(--gold);border-radius:16px;padding:10px 12px;box-shadow:0 6px 24px rgba(0,0,0,.5)}
-.ib-icon{width:46px;height:46px;border-radius:12px;object-fit:cover}
-.ib-text{flex:1;display:flex;flex-direction:column;gap:2px}
-.ib-text strong{font-size:14px}
-.ib-text span{font-size:12px;color:var(--muted)}
-.ib-btn{background:linear-gradient(180deg,#f0a95c,#e08b3d);color:#241505;font-weight:700;font-size:14px;padding:10px 16px;border-radius:12px;white-space:nowrap}
-.ib-close{color:var(--muted);font-size:16px;padding:6px}
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;position:sticky;top:0;background:rgba(22,18,16,.92);backdrop-filter:blur(8px);z-index:50}
+.install-banner{position:sticky;top:10px;z-index:60;margin:10px 14px;display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,#2a1f12,#1f160d);border:1px solid #5a3f1d;border-radius:18px;padding:12px 14px;box-shadow:0 8px 28px rgba(0,0,0,.55),inset 0 1px 0 rgba(242,193,78,.08);animation:slideDown .4s ease}
+@keyframes slideDown{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+.ib-icon{width:48px;height:48px;border-radius:14px;object-fit:cover;border:1px solid #5a3f1d;box-shadow:0 2px 8px rgba(0,0,0,.4);flex:none}
+.ib-text{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}
+.ib-text strong{font-size:14px;color:var(--text);font-weight:700;line-height:1.2}
+.ib-text span{font-size:12px;color:var(--muted);line-height:1.3}
+.ib-btn{background:linear-gradient(180deg,#f4b35e,#e08a35);color:#241505;font-weight:800;font-size:13px;padding:10px 16px;border-radius:12px;white-space:nowrap;box-shadow:0 3px 10px rgba(224,138,53,.35);transition:transform .12s}
+.ib-btn:active{transform:scale(.96)}
+.ib-close{color:var(--muted);font-size:18px;padding:6px 8px;line-height:1;opacity:.7;transition:opacity .15s}
+.ib-close:hover{opacity:1}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;position:sticky;top:0;background:rgba(22,18,16,.92);backdrop-filter:blur(8px);z-index:40}
 .logo{color:var(--gold2);font-weight:800;letter-spacing:1px;font-size:17px}
 .topnav{display:flex;gap:8px}
 .topnav button{position:relative;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:15px}
