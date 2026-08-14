@@ -233,9 +233,10 @@ input,select{font-family:inherit}
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
 const LS='molly_data_v1';
+const isAndroid=/android/i.test(navigator.userAgent);
 let db={notes:[],tasks:[]};
 let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
-let recording=false,rec=null,mr=null,finalText='',interimCur='',timerH=null,sec=0;
+let recording=false,rec=null,mr=null,finalText='',interimCur='',lastFinalText='',timerH=null,sec=0;
 const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
 
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(db))}catch(e){db.notes.forEach(n=>n.audio=null);try{localStorage.setItem(LS,JSON.stringify(db))}catch(_){}}};
@@ -390,18 +391,32 @@ window.toggleTask=id=>{const t=db.tasks.find(x=>x.id===id);t.done=!t.done;save()
 window.delTask=id=>{db.tasks=db.tasks.filter(x=>x.id!==id);save();renderTasks();renderHome();};
 
 // ===== GRABACIÓN + DICTADO (fix Android) =====
-function startRec(){recording=true;finalText='';interimCur='';sec=0;
+function startRec(){recording=true;finalText='';interimCur='';lastFinalText='';sec=0;
   $('#micBtn').classList.add('recording');$('#recState').textContent='Escuchando… toca para terminar';
   $('#recTimer').hidden=false;$('#recTimer').textContent='0:00';$('#liveText').hidden=false;$('#liveText').textContent='';
   timerH=setInterval(()=>{sec++;$('#recTimer').textContent=fmtT(sec);},1000);
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(SR){
-    rec=new SR();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
+    rec=new SR();rec.lang='es-ES';rec.continuous=!isAndroid;rec.interimResults=true;
     rec.onresult=e=>{interimCur='';for(let i=e.resultIndex;i<e.results.length;i++){
-        if(e.results[i].isFinal)finalText+=e.results[i][0].transcript+' ';else interimCur+=e.results[i][0].transcript;}
+        if(e.results[i].isFinal){
+          const tr=e.results[i][0].transcript.trim();
+          if(tr && tr!==lastFinalText && !lastFinalText.endsWith(tr)){
+            finalText+=tr+' ';
+            lastFinalText=tr;
+          }
+        }else interimCur+=e.results[i][0].transcript;}
       $('#liveText').textContent=finalText+interimCur;};
     rec.onerror=e=>{$('#liveText').textContent='⚠️ '+(e.error==='not-allowed'?'Permiso de micrófono denegado':(e.error==='network'?'El dictado necesita internet':'Error: '+e.error));};
-    rec.onend=()=>{if(recording)try{rec.start()}catch(e){}};
+    rec.onend=()=>{
+      if(recording){
+        if(isAndroid){
+          setTimeout(()=>{if(recording)try{rec.start()}catch(e){}},300);
+        }else{
+          try{rec.start()}catch(e){}
+        }
+      }
+    };
     try{rec.start()}catch(e){toast('No se pudo iniciar el reconocimiento');}
   } else {
     $('#liveText').textContent='(Tu navegador no soporta dictado; se grabará solo el audio)';
@@ -420,7 +435,8 @@ function startRec(){recording=true;finalText='';interimCur='';sec=0;
 function stopRec(){recording=false;clearInterval(timerH);
   $('#micBtn').classList.remove('recording');$('#recState').textContent='Toca para dictar tu nota';
   try{rec&&rec.stop()}catch(e){} try{mr&&mr.stop()}catch(e){}
-  const text=(finalText+interimCur).trim();
+  let text=(finalText+interimCur).trim();
+  text=text.replace(/\b(\w+)(\s+\1\b)+/gi,'$1');
   $('#recTimer').hidden=true;$('#liveText').hidden=true;
   if(text.length<3){toast('Nota demasiado corta');return;}
   const newNote={id:uid(),title:text.slice(0,30)+(text.length>30?'…':''),text,tag:'',createdAt:new Date().toISOString(),duration:sec,audio:null};
@@ -449,11 +465,14 @@ function openShared(token){try{const p=JSON.parse(b64d(token));
 
 // ===== BANNER DE INSTALACIÓN =====
 function initInstall(){
+  // console.log('[Install] initInstall called');
   const standalone = matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  // console.log('[Install] standalone:', standalone);
   if (standalone) return;
 
   // Registrar el evento ANTES de mostrar nada
   window.addEventListener('beforeinstallprompt', e => {
+    // console.log('[Install] beforeinstallprompt fired', e);
     e.preventDefault();
     deferredPrompt = e;
     // Solo mostrar banner si no fue descartado
@@ -470,6 +489,7 @@ function initInstall(){
   // Fallback: si después de 4s no llegó beforeinstallprompt, mostrar banner igual
   // (así el usuario al menos ve la opción manual)
   setTimeout(() => {
+    // console.log('[Install] Fallback timeout executed, deferredPrompt:', !!deferredPrompt);
     if (!deferredPrompt && !standalone && !localStorage.getItem('molly_install_dismissed')) {
       $('#installBanner').hidden = false;
     }
@@ -488,7 +508,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!db.notes.length&&!db.tasks.length)seed();
   const m=location.pathname.match(/^\/c\/(.+)$/);
   if(m){openShared(m[1]);}else{showView('home');}
-  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(()=>{});
+  if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(()=>{});
   renderHome();renderNotes();renderTasks();initInstall();
 
   $('#micBtn').onclick=()=>recording?stopRec():startRec();
