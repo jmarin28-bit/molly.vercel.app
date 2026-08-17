@@ -233,6 +233,17 @@ input,select{font-family:inherit}
     <button id="helpClose">Entendido</button>
   </div>
 </div>
+<div id="alarmModal" class="modal" hidden>
+  <div class="box" style="text-align:center">
+    <h3>⏰ Recordatorio</h3>
+    <div id="alarmText" style="font-size:15px;margin:8px 0 4px"></div>
+    <div id="alarmTime" style="font-size:12px;color:var(--muted);margin-bottom:6px"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button id="alarmSnooze" style="flex:1;background:var(--card2);border:1px solid var(--border);color:var(--gold2);border-radius:10px;padding:12px;font-weight:700;font-size:13px">⏱️ Posponer 5 min</button>
+      <button id="alarmDismiss" style="flex:1;background:var(--gold);color:#241505;border-radius:10px;padding:12px;font-weight:700;font-size:13px">✕ Cancelar</button>
+    </div>
+  </div>
+</div>
 <script>
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
@@ -619,6 +630,84 @@ async function doInstall(){
   }
 }
 
+// ===== ALARMA DE RECORDATORIOS =====
+let activeAlarmTask=null;
+let alarmAudioCtx=null;
+let alarmBeepH=null;
+
+function playAlarmBeep(){
+  try{
+    if(!alarmAudioCtx)alarmAudioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=alarmAudioCtx;
+    const now=ctx.currentTime;
+    [0,0.35,0.7].forEach(off=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.type='sine';osc.frequency.value=880;
+      gain.gain.setValueAtTime(0.0001,now+off);
+      gain.gain.exponentialRampToValueAtTime(0.35,now+off+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001,now+off+0.28);
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.start(now+off);osc.stop(now+off+0.3);
+    });
+  }catch(e){}
+}
+
+function startAlarmSound(){
+  stopAlarmSound();
+  playAlarmBeep();
+  alarmBeepH=setInterval(playAlarmBeep,1200);
+  if(navigator.vibrate){try{navigator.vibrate([300,150,300,150,300]);}catch(e){}}
+}
+function stopAlarmSound(){
+  if(alarmBeepH){clearInterval(alarmBeepH);alarmBeepH=null;}
+}
+
+function showAlarm(task){
+  if(activeAlarmTask)return; // ya hay una alarma mostrándose, no interrumpir con otra
+  activeAlarmTask=task;
+  $('#alarmText').textContent=task.title;
+  $('#alarmTime').textContent='Programado: '+dayLabel(task.due);
+  $('#alarmModal').hidden=false;
+  startAlarmSound();
+}
+
+function checkDueReminders(){
+  const view=document.querySelector('.view:not([hidden])');
+  const onAllowedView=view&&(view.id==='view-home'||view.id==='view-tasks');
+  if(!onAllowedView)return; // solo interrumpe en Inicio o Tareas, según lo pedido
+  if(activeAlarmTask)return;
+  const now=new Date();
+  const due=db.tasks.find(t=>!t.done&&!t.alerted&&new Date(t.due)<=now);
+  if(due)showAlarm(due);
+}
+
+function snoozeAlarm(){
+  if(!activeAlarmTask)return;
+  const t=db.tasks.find(x=>x.id===activeAlarmTask.id);
+  if(t){
+    t.due=new Date(Date.now()+5*60000).toISOString();
+    t.alerted=false;
+    save();
+  }
+  closeAlarm();
+  toast('Recordatorio pospuesto 5 min');
+  renderTasks();renderHome();
+}
+function dismissAlarm(){
+  if(!activeAlarmTask)return;
+  const t=db.tasks.find(x=>x.id===activeAlarmTask.id);
+  if(t){db.tasks=db.tasks.filter(x=>x.id!==t.id);save();}
+  closeAlarm();
+  toast('Recordatorio cancelado');
+  renderTasks();renderHome();
+}
+function closeAlarm(){
+  stopAlarmSound();
+  $('#alarmModal').hidden=true;
+  activeAlarmTask=null;
+}
+
 // ===== EVENTOS =====
 document.addEventListener('DOMContentLoaded',()=>{
   load();
@@ -631,6 +720,7 @@ document.addEventListener('DOMContentLoaded',()=>{
     });
   }
   renderHome();renderNotes();renderTasks();initInstall();
+  setInterval(checkDueReminders,15000);
 
   $('#micBtn').onclick=()=>recording?stopRec():startRec();
   $('#addTextBtn').onclick=createTextNote;
@@ -680,6 +770,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#installBtn').onclick=doInstall;
   $('#installClose').onclick=()=>{$('#installBanner').hidden=true;localStorage.setItem('molly_install_dismissed',String(Date.now()));};
   $('#helpClose').onclick=()=>$('#helpModal').hidden=true;
+  $('#alarmSnooze').onclick=snoozeAlarm;
+  $('#alarmDismiss').onclick=dismissAlarm;
   window.addEventListener('beforeunload',save);
   document.addEventListener('visibilitychange',()=>{(document.visibilityState==='hidden')&&save();});
 });
