@@ -419,6 +419,9 @@ function renderTasks(){const now=new Date();
 window.toggleTask=id=>{const t=db.tasks.find(x=>x.id===id);t.done=!t.done;save();renderTasks();renderHome();};
 window.delTask=id=>{db.tasks=db.tasks.filter(x=>x.id!==id);save();renderTasks();renderHome();};
 
+function normWord(w){
+  return w.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]/gu,'');
+}
 function mergeTranscripts(a,b){
   a=(a||'').trim();b=(b||'').trim();
   if(!a)return b; if(!b)return a;
@@ -426,13 +429,30 @@ function mergeTranscripts(a,b){
   if(bLow.startsWith(aLow))return b;
   if(aLow.endsWith(bLow)||aLow.includes(bLow))return a;
   const wordsA=a.split(/\s+/),wordsB=b.split(/\s+/);
+  const normA=wordsA.map(normWord),normB=wordsB.map(normWord);
   const maxOverlap=Math.min(wordsA.length,wordsB.length);
   for(let len=maxOverlap;len>0;len--){
-    const suffixA=wordsA.slice(wordsA.length-len).join(' ').toLowerCase();
-    const prefixB=wordsB.slice(0,len).join(' ').toLowerCase();
+    const suffixA=normA.slice(normA.length-len).join(' ');
+    const prefixB=normB.slice(0,len).join(' ');
     if(suffixA===prefixB){
       return wordsA.concat(wordsB.slice(len)).join(' ');
     }
+  }
+  if(normB.length>=2){
+    let matched=0,cursor=0;
+    for(const w of normB){
+      const idx=normA.indexOf(w,cursor);
+      if(idx!==-1){matched++;cursor=idx+1;}
+    }
+    if(matched/normB.length>=0.8)return wordsB.length>wordsA.length?b:a;
+  }
+  if(normA.length>=2){
+    let matched=0,cursor=0;
+    for(const w of normA){
+      const idx=normB.indexOf(w,cursor);
+      if(idx!==-1){matched++;cursor=idx+1;}
+    }
+    if(matched/normA.length>=0.8)return wordsB.length>wordsA.length?b:a;
   }
   return a+' '+b;
 }
