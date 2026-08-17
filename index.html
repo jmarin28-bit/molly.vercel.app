@@ -240,7 +240,7 @@ const LS='molly_data_v2';
 const isAndroid=/android/i.test(navigator.userAgent);
 let db={notes:[],tasks:[]};
 let currentNote=null,sharedNote=null,pendingRem=null,audioEl=null,deferredPrompt=null;
-let recording=false,rec=null,mr=null,recStarting=false,timerH=null,sec=0,recognizedText='',sessionBaseText='',finalChunks=[];
+let recording=false,rec=null,mr=null,recStarting=false,timerH=null,sec=0,recognizedText='',sessionBaseText='';
 const STOP=new Set('de la que el en y a los del se las por un para con no una su al lo como mas pero sus le ya o este si porque esta son entre cuando muy sin sobre tambien me hasta hay donde quien desde todo nos durante todos uno les ni contra otros ese eso ante ellos e esto mi antes algo hoy ayer manana mañana'.split(' '));
 
 const save=()=>{try{localStorage.setItem(LS,JSON.stringify(db))}catch(e){db.notes.forEach(n=>n.audio=null);try{localStorage.setItem(LS,JSON.stringify(db))}catch(_){}}};
@@ -438,6 +438,10 @@ function mergeTranscripts(a,b){
       return wordsA.concat(wordsB.slice(len)).join(' ');
     }
   }
+  // Última defensa: si B es casi todo (>=80% de sus palabras normalizadas, en orden)
+  // una re-transcripción de A, es el mismo audio repetido por Android, no texto nuevo.
+  // Nos quedamos con la versión que tenga más palabras (normalmente la más completa),
+  // en vez de descartar u obedecer ciegamente la última que llegó.
   if(normB.length>=2){
     let matched=0,cursor=0;
     for(const w of normB){
@@ -459,7 +463,7 @@ function mergeTranscripts(a,b){
 
 // ===== GRABACIÓN + DICTADO (anti-duplicación Android & Desktop) =====
 function startRec(){
-  recording=true;recStarting=false;recognizedText='';sessionBaseText='';sec=0;finalChunks=[];
+  recording=true;recStarting=false;recognizedText='';sessionBaseText='';sec=0;
   $('#micBtn').classList.add('recording');$('#recState').textContent='Escuchando… toca para terminar';
   $('#recTimer').hidden=false;$('#recTimer').textContent='0:00';$('#liveText').hidden=false;$('#liveText').textContent='';
   timerH=setInterval(()=>{sec++;$('#recTimer').textContent=fmtT(sec);},1000);
@@ -468,17 +472,21 @@ function startRec(){
     rec=new SR();rec.lang='es-ES';rec.continuous=true;rec.interimResults=true;
     rec.onstart=()=>{recStarting=false;};
     rec.onresult=e=>{
-      let interimStr='';
-      for(let i=e.resultIndex;i<e.results.length;i++){
+      // Reconstruimos SIEMPRE el texto final completo desde el principio de e.results,
+      // en vez de indexar por posición: Android a veces reconsolida/reescribe resultados
+      // ya finalizados en índices distintos con contenido superpuesto, y un array por
+      // índice terminaba duplicando esas palabras al hacer join. Reconstruir completo y
+      // fusionar con mergeTranscripts (que ya sabe detectar solapes) es más robusto.
+      let finalStr='';let interimStr='';
+      for(let i=0;i<e.results.length;i++){
         const tr=e.results[i][0].transcript.trim();
         if(!tr)continue;
         if(e.results[i].isFinal){
-          finalChunks[i]=tr;
+          finalStr=mergeTranscripts(finalStr,tr);
         }else{
           interimStr=mergeTranscripts(interimStr,tr);
         }
       }
-      const finalStr=finalChunks.filter(Boolean).join(' ');
       const currentSession=mergeTranscripts(finalStr,interimStr);
       recognizedText=mergeTranscripts(sessionBaseText,currentSession);
       $('#liveText').textContent=recognizedText;
@@ -492,7 +500,6 @@ function startRec(){
       recStarting=false;
       if(recording){
         sessionBaseText=recognizedText;
-        finalChunks=[];
         try{rec.start();}catch(_){}
       }
     };
