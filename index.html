@@ -199,7 +199,7 @@ input,select{font-family:inherit}
       <div class="row"><span id="curTime">0:00</span><input id="seekBar" type="range" min="0" max="100" value="0"><span id="durTime">0:00</span></div>
       <div class="player-btns"><button id="back10">⟲ 10</button><button id="playBtn">▶</button><button id="fwd10">10 ⟳</button></div>
     </div>
-    <button id="ttsBtn" class="tts-btn" hidden>🔊 Escuchar nota (voz sintética)</button>
+    <button id="ttsBtn" class="tts-btn" hidden>🔊 Escuchar nota</button>
   </section>
   <section id="view-tasks" class="view" hidden>
     <div class="nd-head"><button id="tkBack">←</button><h2>Tareas</h2></div>
@@ -263,35 +263,48 @@ const timeOf=d=>p2(d.getHours())+':'+p2(d.getMinutes());
 const esc=s=>(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 const sentencesOf=t=>(t.match(/[^.!?]+[.!?]*/g)||[t]).map(s=>s.trim()).filter(Boolean);
 
-let voices=[];
-function loadVoices(){if(window.speechSynthesis){voices=window.speechSynthesis.getVoices();}}
-if(typeof window!=='undefined'&&window.speechSynthesis){
-  loadVoices();
-  window.speechSynthesis.onvoiceschanged=loadVoices;
+// ===== VOZ NATURAL (Gemini TTS via /api/tts) =====
+const ttsCache=new Map(); // cacheKey -> {text, src}  (no se persiste: solo en memoria)
+let ttsAudioEl=null,ttsActiveBtn=null;
+function setTtsBtnState(btn,state){
+  if(!btn.dataset.idleLabel)btn.dataset.idleLabel=btn.textContent;
+  if(state==='idle'){btn.disabled=false;btn.textContent=btn.dataset.idleLabel;}
+  else if(state==='loading'){btn.disabled=true;btn.textContent='⏳ Generando voz…';}
+  else if(state==='playing'){btn.disabled=false;btn.textContent='⏸ Detener narración';}
+  else if(state==='error'){btn.disabled=false;btn.textContent='⚠️ No se pudo generar la voz — Reintentar';}
 }
-function getBestLatinFemaleVoice(){
-  if(!voices||!voices.length){if(window.speechSynthesis)voices=window.speechSynthesis.getVoices();}
-  if(!voices||!voices.length)return null;
-  const femaleKeys=['sabina','dalia','paulina','sofia','lupe','monica','mia','victoria','francisca','paloma','jimena','female','mujer','natural','neural','google español de estados unidos','google español'];
-  const latinFemale=voices.find(v=>/(es-419|es-MX|es-CO|es-US|es-AR|es-CL|es-PE|es-VE)/i.test(v.lang)&&femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
-  if(latinFemale)return latinFemale;
-  const latinVoice=voices.find(v=>/(es-419|es-MX|es-CO|es-US|es-AR|es-CL|es-PE)/i.test(v.lang));
-  if(latinVoice)return latinVoice;
-  const esFemale=voices.find(v=>/^es/i.test(v.lang)&&femaleKeys.some(k=>v.name.toLowerCase().includes(k)));
-  if(esFemale)return esFemale;
-  return voices.find(v=>/^es/i.test(v.lang))||null;
+function stopTTS(){
+  if(ttsAudioEl){try{ttsAudioEl.pause();}catch(e){}ttsAudioEl=null;}
+  if(ttsActiveBtn){setTtsBtnState(ttsActiveBtn,'idle');ttsActiveBtn=null;}
 }
-function speakText(text){
-  if(!window.speechSynthesis||!text)return;
+function startTTSPlayback(src,btn){
+  const audio=new Audio(src);
+  ttsAudioEl=audio;ttsActiveBtn=btn;
+  setTtsBtnState(btn,'playing');
+  audio.onended=()=>{if(ttsActiveBtn===btn)stopTTS();};
+  audio.onerror=()=>{if(ttsActiveBtn===btn){setTtsBtnState(btn,'error');ttsAudioEl=null;ttsActiveBtn=null;}};
+  audio.play().catch(()=>{setTtsBtnState(btn,'error');ttsAudioEl=null;ttsActiveBtn=null;});
+}
+async function toggleTTS(text,btn,cacheKey){
+  if(!btn.dataset.idleLabel)btn.dataset.idleLabel=btn.textContent;
+  if(ttsActiveBtn===btn){stopTTS();return;}
   stopTTS();
-  const utt=new SpeechSynthesisUtterance(text);
-  const v=getBestLatinFemaleVoice();
-  if(v){utt.voice=v;utt.lang=v.lang;}else{utt.lang='es-MX';}
-  utt.rate=0.96;
-  utt.pitch=1.06;
-  window.speechSynthesis.speak(utt);
+  if(!text)return;
+  const cached=cacheKey&&ttsCache.get(cacheKey);
+  if(cached&&cached.text===text){startTTSPlayback(cached.src,btn);return;}
+  setTtsBtnState(btn,'loading');
+  try{
+    const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:text})});
+    if(!r.ok)throw new Error('http '+r.status);
+    const data=await r.json();
+    if(!data||!data.audio)throw new Error('empty');
+    const src='data:'+(data.mimeType||'audio/wav')+';base64,'+data.audio;
+    if(cacheKey)ttsCache.set(cacheKey,{text,src});
+    startTTSPlayback(src,btn);
+  }catch(e){
+    setTtsBtnState(btn,'error');
+  }
 }
-function stopTTS(){if(window.speechSynthesis)window.speechSynthesis.cancel();}
 
 function dayLabel(iso){const d=new Date(iso),t=new Date();t.setHours(0,0,0,0);
   const dd=new Date(d);dd.setHours(0,0,0,0);const diff=(t-dd)/864e5;
@@ -790,14 +803,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('#back10').onclick=()=>{if(audioEl)audioEl.currentTime=Math.max(0,audioEl.currentTime-10);};
   $('#fwd10').onclick=()=>{if(audioEl)audioEl.currentTime=Math.min(audioEl.duration||0,audioEl.currentTime+10);};
   $('#seekBar').oninput=e=>{if(audioEl&&audioEl.duration)audioEl.currentTime=(e.target.value/100)*audioEl.duration;};
-  $('#ttsBtn').onclick=()=>{if(!currentNote)return;
-    speakText(currentNote.text);toast('Leyendo nota… 🎙️');};
+  $('#ttsBtn').onclick=()=>{if(!currentNote)return;toggleTTS(currentNote.text,$('#ttsBtn'),currentNote.id);};
   $('#fmtBtn').onclick=()=>{if(!currentNote)return;
     const formatted=sentencesOf(currentNote.text).join('.\n\n');
     currentNote.text=formatted;save();$('#transText').textContent=formatted;toast('Texto formateado');renderSummary(formatted);};
   $('#shSave').onclick=()=>{if(!sharedNote)return;db.notes.unshift(sharedNote);save();renderNotes();renderHome();toast('Guardada en mis notas 💾');openNoteView(sharedNote);};
-  $('#shTts').onclick=()=>{if(!sharedNote)return;
-    speakText(sharedNote.text);toast('Leyendo nota compartida… 🎙️');};
+  $('#shTts').onclick=()=>{if(!sharedNote)return;toggleTTS(sharedNote.text,$('#shTts'),sharedNote.id);};
   $('#shOpenBrowser').onclick=()=>{window.open(location.href,'_blank')||(location.href=location.href);};
   $('#shHome').onclick=()=>showView('home');
   $('#installBtn').onclick=doInstall;
