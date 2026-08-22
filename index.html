@@ -356,17 +356,38 @@ function renderNotes(){const q=$('#searchInput').value.toLowerCase(),s=$('#sortS
     ||'<div style="text-align:center;padding:40px 16px;color:var(--muted)"><p style="font-size:15px;margin-bottom:6px">No hay notas todavía 🎙️</p><p style="font-size:12px">Toca el micrófono abajo para comenzar a dictar.</p></div>';
   updateBadges();}
 
-// ===== RESUMEN / CHAT =====
-function renderSummary(text){const ss=sentencesOf(text);
-  if(ss.length<=2){$('#sumList').innerHTML=ss.map(s=>`<div>✦ ${esc(s)}</div>`).join('');return;}
-  const freq={};text.toLowerCase().split(/[^\p{L}]+/u).forEach(w=>{if(w.length>3&&!STOP.has(w))freq[w]=(freq[w]||0)+1;});
-  const scored=ss.map((s,i)=>({i,s,score:s.toLowerCase().split(/[^\p{L}]+/u).reduce((a,w)=>a+(freq[w]||0),0)/Math.max(5,s.length)}));
-  const top=scored.sort((a,b)=>b.score-a.score).slice(0,3).sort((a,b)=>a.i-b.i);
-  $('#sumList').innerHTML=top.map(x=>`<div>✦ ${esc(x.s)}</div>`).join('');}
-function resetChat(n){$('#chatLog').innerHTML=`<div class="bubble bot">Hola 👋 Soy Molly. Pregúntame algo sobre "${esc(n.title)}".</div>`;}
-function chatAnswer(q,text){const toks=q.toLowerCase().split(/[^\p{L}]+/u).filter(w=>w.length>2&&!STOP.has(w));
-  const hit=sentencesOf(text).filter(s=>{const l=s.toLowerCase();return toks.some(t=>l.includes(t));});
-  return hit.length?hit.slice(0,2).join(' '):'No encontré nada relacionado en esta nota. Prueba con otra palabra 🙈';}
+// ===== RESUMEN / CHAT (Gemini real via /api) =====
+let summaryReqId=0;
+async function renderSummary(text){
+  const note=currentNote,reqId=++summaryReqId;
+  if(note&&note._summaryText===text&&note._summaryCache){
+    $('#sumList').innerHTML=note._summaryCache.map(s=>`<div>✦ ${esc(s)}</div>`).join('');return;}
+  $('#sumList').innerHTML='<div style="color:var(--muted)">✦ Generando resumen…</div>';
+  try{
+    const r=await fetch('/api/resumir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:text})});
+    if(!r.ok)throw new Error('http '+r.status);
+    const data=await r.json();
+    if(reqId!==summaryReqId)return;
+    const resumen=Array.isArray(data.resumen)?data.resumen.filter(s=>typeof s==='string'&&s.trim()):[];
+    if(!resumen.length)throw new Error('empty');
+    if(note){note._summaryText=text;note._summaryCache=resumen;}
+    $('#sumList').innerHTML=resumen.map(s=>`<div>✦ ${esc(s)}</div>`).join('');
+  }catch(e){
+    if(reqId!==summaryReqId)return;
+    $('#sumList').innerHTML='<div style="color:var(--danger)">⚠️ No se pudo conectar, intenta de nuevo.</div>'+
+      '<button id="sumRetryBtn" style="margin-top:10px;background:var(--gold);color:#241505;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700">🔄 Reintentar</button>';
+    const btn=$('#sumRetryBtn');if(btn)btn.onclick=()=>renderSummary(text);
+  }
+}
+let chatHistory=[];
+function resetChat(n){chatHistory=[];$('#chatLog').innerHTML=`<div class="bubble bot">Hola 👋 Soy Molly. Pregúntame algo sobre "${esc(n.title)}".</div>`;}
+async function chatAnswer(q,text,historial){
+  const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({texto:text,pregunta:q,historial})});
+  if(!r.ok)throw new Error('http '+r.status);
+  const data=await r.json();
+  if(!data||typeof data.respuesta!=='string'||!data.respuesta.trim())throw new Error('empty');
+  return data.respuesta;
+}
 
 // ===== RECORDATORIOS =====
 function detectReminder(text){const low=text.toLowerCase();
@@ -743,10 +764,22 @@ document.addEventListener('DOMContentLoaded',()=>{
     $('#pane-resumen').hidden=(tab!=='resumen');
     $('#pane-trans').hidden=(tab!=='trans');
     $('#pane-chat').hidden=(tab!=='chat');};});
-  $('#chatSend').onclick=()=>{const q=$('#chatInput').value.trim();if(!q||!currentNote)return;
-    const log=$('#chatLog');log.innerHTML+=`<div class="bubble user">${esc(q)}</div>`;
-    log.innerHTML+=`<div class="bubble bot">${esc(chatAnswer(q,currentNote.text))}</div>`;
-    $('#chatInput').value='';log.scrollTop=log.scrollHeight;};
+  $('#chatSend').onclick=async()=>{const q=$('#chatInput').value.trim();if(!q||!currentNote)return;
+    const log=$('#chatLog');
+    log.innerHTML+=`<div class="bubble user">${esc(q)}</div>`;
+    $('#chatInput').value='';
+    const bubbleId='bot-'+uid();
+    log.innerHTML+=`<div class="bubble bot" id="${bubbleId}">Escribiendo…</div>`;
+    log.scrollTop=log.scrollHeight;
+    const historyForReq=chatHistory.slice(),note=currentNote;
+    try{
+      const respuesta=await chatAnswer(q,note.text,historyForReq);
+      if(currentNote===note)chatHistory.push({role:'user',text:q},{role:'model',text:respuesta});
+      const el=document.getElementById(bubbleId);if(el)el.textContent=respuesta;
+    }catch(e){
+      const el=document.getElementById(bubbleId);if(el)el.textContent='⚠️ No se pudo conectar, intenta de nuevo.';
+    }
+    log.scrollTop=log.scrollHeight;};
   $('#chatInput').onkeydown=e=>{if(e.key==='Enter')$('#chatSend').click();};
   $('#remConfirm').onclick=()=>{if(!pendingRem)return;
     db.tasks.unshift({id:uid(),title:pendingRem.label,due:pendingRem.due,tag:'Recordatorio',done:false});
